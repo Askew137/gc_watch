@@ -3,7 +3,10 @@ package com.askew137.gcwatch.wear
 import android.app.Application
 import com.askew137.gcwatch.wear.config.ConfigRepository
 import com.askew137.gcwatch.wear.navigation.NavigationRepository
+import com.askew137.gcwatch.core.communication.ApkInstaller
+import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
+import java.io.File
 
 class WearApplication : Application() {
 
@@ -15,10 +18,21 @@ class WearApplication : Application() {
     val navigationRepository: NavigationRepository by lazy { NavigationRepository(this) }
     val configRepository: ConfigRepository by lazy { ConfigRepository(this) }
 
+    /** A newer watch APK that the phone sent; the UI offers to install it. */
+    val pendingUpdate = MutableStateFlow<File?>(null)
+
     override fun onCreate() {
         super.onCreate()
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+        restorePendingUpdate()
+    }
+
+    /** The process may have been restarted between receiving the APK and the user's tap. */
+    private fun restorePendingUpdate() {
+        val apk = File(filesDir, "updates/wear.apk")
+        if (!apk.exists()) return
+        if (ApkInstaller.verifyUpdate(this, apk) == null) pendingUpdate.value = apk else apk.delete()
     }
 }

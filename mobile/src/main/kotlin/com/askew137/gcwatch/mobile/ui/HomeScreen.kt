@@ -21,9 +21,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -39,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.askew137.gcwatch.mobile.update.AppUpdater
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -53,6 +56,8 @@ fun HomeScreen(
     val connectedNode by viewModel.connectedNodeName.collectAsState()
     val updateInfo by viewModel.updateInfo.collectAsState()
     val updateInProgress by viewModel.updateCheckInProgress.collectAsState()
+    val updateState by viewModel.updateState.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refreshConnectedNode() }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -223,21 +228,43 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val working = updateState is AppUpdater.State.Working
                         Text(
-                            "Tap to open the GitHub release page.",
+                            when (val st = updateState) {
+                                is AppUpdater.State.Working ->
+                                    st.step + if (st.percent >= 0) " ${st.percent} %" else "…"
+                                AppUpdater.State.AwaitingConfirmation ->
+                                    "Confirm the installation on the phone. Also confirm it on the watch (open GC Watch there)."
+                                is AppUpdater.State.Failed -> "Update failed: ${st.message}"
+                                AppUpdater.State.Idle ->
+                                    if (info.canUpdateInApp) "Updates the phone and the watch (the watch must be connected)."
+                                    else "Tap to open the GitHub release page."
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
+                        if (updateState is AppUpdater.State.Working) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (info.canUpdateInApp) {
                             Button(
+                                enabled = !working,
+                                modifier = Modifier.fillMaxWidth(),
                                 onClick = {
-                                    viewModel.openReleaseUrl(info.releaseUrl)
+                                    if (viewModel.canInstallApks()) viewModel.startUpdate(info)
+                                    else viewModel.openInstallPermissionSettings()
                                 },
-                            ) { Text("Open release") }
-                            Button(
-                                onClick = { viewModel.clearUpdateInfo() },
-                            ) { Text("Dismiss") }
+                            ) {
+                                Text(if (viewModel.canInstallApks()) "Update phone + watch" else "Allow installing, then tap again")
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { viewModel.openReleaseUrl(info.releaseUrl) }) { Text("Release page") }
+                            OutlinedButton(onClick = { viewModel.clearUpdateInfo() }) { Text("Dismiss") }
                         }
                     }
                 }

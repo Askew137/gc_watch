@@ -17,8 +17,8 @@ android {
         applicationId = "com.askew137.gcwatch"
         minSdk = 30
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = providers.gradleProperty("gcwatch.versionCode").get().toInt()
+        versionName = providers.gradleProperty("gcwatch.versionName").get()
     }
 
     signingConfigs {

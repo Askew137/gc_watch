@@ -7,6 +7,7 @@ import com.askew137.gcwatch.core.communication.RouteRequest
 import com.askew137.gcwatch.core.communication.RouteSerializer
 import com.askew137.gcwatch.core.model.ComputedRoute
 import com.askew137.gcwatch.mobile.routing.BRouterEngine
+import com.askew137.gcwatch.mobile.update.AppUpdater
 import com.askew137.gcwatch.mobile.routing.SegmentRepository
 import com.askew137.gcwatch.mobile.ui.MobileApplication
 import com.google.android.gms.wearable.MessageEvent
@@ -35,6 +36,7 @@ class MobileMessageService : WearableListenerService() {
         Timber.d("Message received: path=${event.path} from=${event.sourceNodeId}")
         when (event.path) {
             MessagePaths.ROUTE_REQUEST -> handleRouteRequest(event)
+            MessagePaths.UPDATE_WEAR_RECEIVED -> AppUpdater.onWatchAck()
             MessagePaths.CONFIG_SYNC   -> handleConfigSync(event)
             else -> Timber.w("Unhandled message path: ${event.path}")
         }

@@ -1,5 +1,7 @@
 package com.askew137.gcwatch.mobile.update
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -12,7 +14,7 @@ import java.util.concurrent.TimeUnit
  * This is a v1 implementation: it only reads the latest release and returns
  * [UpdateInfo] when the remote tag is newer than [currentVersion]. The UI
  * will display a notification/snackbar prompting the user to visit the
- * release page manually – no auto-install in v1.
+ * release page manually. [AppUpdater] can download and install it in the app.
  */
 object UpdateChecker {
 
@@ -21,8 +23,7 @@ object UpdateChecker {
         .readTimeout(10, TimeUnit.SECONDS)
         .build()
 
-    private const val RELEASES_URL =
-        "https://api.github.com/repos/Askew137/gc_watch/releases/latest"
+    private val RELEASES_URL = com.askew137.gcwatch.mobile.BuildConfig.UPDATE_URL
 
     /**
      * Makes an HTTP GET to the GitHub Releases API.
@@ -30,8 +31,9 @@ object UpdateChecker {
      * @param currentVersion Semantic version string of the installed app, e.g. "1.0.0".
      * @return [UpdateInfo] if a newer release exists, or `null` if up to date / network error.
      */
-    suspend fun checkForUpdate(currentVersion: String): UpdateInfo? {
-        return try {
+    suspend fun checkForUpdate(currentVersion: String): UpdateInfo? = withContext(Dispatchers.IO) {
+        // Blocking OkHttp call: must not run on the main thread (the caller is a viewModelScope).
+        try {
             val request = Request.Builder()
                 .url(RELEASES_URL)
                 .header("Accept", "application/vnd.github+json")
@@ -40,19 +42,33 @@ object UpdateChecker {
             val body = client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     Timber.w("GitHub API returned HTTP ${response.code}")
-                    return null
+                    return@withContext null
                 }
-                response.body?.string() ?: return null
+                response.body?.string() ?: return@withContext null
             }
 
             val json = JSONObject(body)
             val tagName    = json.getString("tag_name").trimStart('v')
             val releaseUrl = json.getString("html_url")
+            val assets = json.optJSONArray("assets")
+            fun assetUrl(name: String): String? {
+                if (assets == null) return null
+                for (i in 0 until assets.length()) {
+                    val a = assets.getJSONObject(i)
+                    if (a.optString("name") == name) return a.optString("browser_download_url").takeIf { it.isNotEmpty() }
+                }
+                return null
+            }
 
             Timber.d("Latest GitHub release: $tagName (installed: $currentVersion)")
 
             if (isNewerVersion(remote = tagName, current = currentVersion)) {
-                UpdateInfo(version = tagName, releaseUrl = releaseUrl)
+                UpdateInfo(
+                    version = tagName,
+                    releaseUrl = releaseUrl,
+                    mobileApkUrl = assetUrl("mobile-release.apk"),
+                    wearApkUrl = assetUrl("wear-release.apk"),
+                )
             } else {
                 null
             }
@@ -81,4 +97,12 @@ object UpdateChecker {
     }
 }
 
-data class UpdateInfo(val version: String, val releaseUrl: String)
+data class UpdateInfo(
+    val version: String,
+    val releaseUrl: String,
+    /** Direct download URLs of the release assets; null when the release has no such file. */
+    val mobileApkUrl: String? = null,
+    val wearApkUrl: String? = null,
+) {
+    val canUpdateInApp: Boolean get() = mobileApkUrl != null && wearApkUrl != null
+}

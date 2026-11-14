@@ -3,6 +3,7 @@ package com.askew137.gcwatch.mobile.ui
 import android.app.Application
 import com.askew137.gcwatch.mobile.config.MobileConfigRepository
 import com.askew137.gcwatch.mobile.BuildConfig
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /** Application class – plants Timber tree and initialises global singletons. */
@@ -27,6 +28,8 @@ class MobileApplication : Application() {
         }
         configRepository = MobileConfigRepository(this)
         com.askew137.gcwatch.mobile.routing.SegmentRepository.init(this)
+        // Downloaded update APKs are no longer needed once the app (re)starts.
+        appScope.launch { java.io.File(cacheDir, "updates").deleteRecursively() }
         Timber.d("MobileApplication started")
     }
 

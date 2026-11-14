@@ -1,5 +1,6 @@
 package com.askew137.gcwatch.wear.navigation
 
+import com.askew137.gcwatch.core.communication.ApkInstaller
 import com.askew137.gcwatch.core.communication.MessagePaths
 import com.askew137.gcwatch.wear.WearApplication
 import com.askew137.gcwatch.wear.config.ConfigRepository
@@ -41,6 +42,10 @@ class WearMessageService : WearableListenerService() {
     /** Receives a Mapsforge `.map` file streamed from the phone's MapTransferService. */
     override fun onChannelOpened(channel: ChannelClient.Channel) {
         val path = channel.path
+        if (path == MessagePaths.CHANNEL_UPDATE_WEAR_APK) {
+            receiveUpdate(channel)
+            return
+        }
         if (!path.startsWith(MAP_TRANSFER_PREFIX)) {
             Timber.d("WearMessageService: ignoring channel %s", path)
             return
@@ -86,7 +91,59 @@ class WearMessageService : WearableListenerService() {
         }
     }
 
+    /** Stores the new watch APK from the phone and lets the UI offer the installation. */
+    private fun receiveUpdate(channel: ChannelClient.Channel) {
+        val client = Wearable.getChannelClient(this)
+        val dir = File(filesDir, "updates").apply { mkdirs() }
+        val tmp = File(dir, "wear.apk.part")
+        val dest = File(dir, "wear.apk")
+        try {
+            Timber.i("WearMessageService: receiving update APK")
+            val input = Tasks.await(client.getInputStream(channel))
+            var total = 0L
+            input.use { src ->
+                tmp.outputStream().use { out ->
+                    val buf = ByteArray(16 * 1024)
+                    var n: Int
+                    while (src.read(buf).also { n = it } != -1) {
+                        total += n
+                        if (total > MAX_UPDATE_BYTES) throw IllegalStateException("update too large")
+                        out.write(buf, 0, n)
+                    }
+                }
+            }
+            val problem = ApkInstaller.verifyUpdate(this, tmp)
+            when {
+                problem == null -> {
+                    if (dest.exists()) dest.delete()
+                    tmp.renameTo(dest)
+                    (applicationContext as WearApplication).pendingUpdate.value = dest
+                    Timber.i("WearMessageService: update APK stored (%d bytes)", total)
+                }
+                problem.startsWith("not newer") -> {
+                    // Nothing to install, but let the phone continue with its own update.
+                    tmp.delete()
+                    Timber.i("WearMessageService: watch is already up to date (%s)", problem)
+                }
+                else -> {
+                    tmp.delete()
+                    Timber.w("WearMessageService: update APK rejected: %s", problem)
+                    return // no acknowledgement: the phone reports a failed update
+                }
+            }
+            Tasks.await(
+                Wearable.getMessageClient(this).sendMessage(channel.nodeId, MessagePaths.UPDATE_WEAR_RECEIVED, ByteArray(0))
+            )
+        } catch (e: Exception) {
+            Timber.e(e, "WearMessageService: update transfer failed")
+            tmp.delete()
+        } finally {
+            runCatching { Tasks.await(client.close(channel)) }
+        }
+    }
+
     private companion object {
+        const val MAX_UPDATE_BYTES = 100L * 1024 * 1024
         const val MAP_TRANSFER_PREFIX = "/map_transfer/"
     }
 }

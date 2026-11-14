@@ -13,6 +13,8 @@ import com.askew137.gcwatch.mobile.maps.MapFileRepository
 import com.askew137.gcwatch.mobile.maps.MapTransferService
 import com.askew137.gcwatch.mobile.routing.SegmentDownloadService
 import com.askew137.gcwatch.mobile.routing.SegmentRepository
+import com.askew137.gcwatch.core.communication.ApkInstaller
+import com.askew137.gcwatch.mobile.update.AppUpdater
 import com.askew137.gcwatch.mobile.update.UpdateChecker
 import com.askew137.gcwatch.mobile.update.UpdateInfo
 import com.google.android.gms.wearable.Wearable
@@ -80,6 +82,7 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
         refreshMapFiles()
         refreshConnectedNode()
         refreshSegments()
+        checkForUpdate() // silent: only a newer release shows anything
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             SegmentRepository.fetchRemoteSizes(SegmentRepository.knownTiles.map { it.name })
         }
@@ -127,6 +130,16 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) { SegmentRepository.fetchRemoteSizes(listOf(tile)) }
     }
 
+    val updateState = AppUpdater.state
+
+    fun canInstallApks(): Boolean = ApkInstaller.canInstall(app)
+
+    fun openInstallPermissionSettings() {
+        app.startActivity(ApkInstaller.permissionSettingsIntent(app))
+    }
+
+    fun startUpdate(info: com.askew137.gcwatch.mobile.update.UpdateInfo) = AppUpdater.start(app, info)
+
     fun checkForUpdate() {
         if (_updateCheckInProgress.value) return
         viewModelScope.launch {
@@ -153,7 +166,8 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
         app.startActivity(intent)
     }
 
-    private fun refreshConnectedNode() {
+    /** Called when the home screen is shown; the node list is otherwise only read once. */
+    fun refreshConnectedNode() {
         viewModelScope.launch {
             try {
                 val nodes = Wearable.getNodeClient(app).connectedNodes.await()

@@ -24,6 +24,12 @@ object MessagePaths {
 
     /** Watch → Phone: watch-side GPS fix for phone's awareness. Payload: protobuf PhoneLocation. */
     const val WATCH_LOCATION = "/watch_location"
+
+    /** Phone → Watch (ChannelClient path): the watch APK of a new release; the watch asks to install it. */
+    const val CHANNEL_UPDATE_WEAR_APK = "/update/wear.apk"
+
+    /** Watch → Phone: the update APK arrived and is stored (the phone may close the channel). */
+    const val UPDATE_WEAR_RECEIVED = "/update/wear_received"
 }
 
 /** DataClient item path for persistent config sync. */

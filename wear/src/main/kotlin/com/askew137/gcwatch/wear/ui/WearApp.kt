@@ -1,6 +1,11 @@
 package com.askew137.gcwatch.wear.ui
 
 import androidx.compose.runtime.Composable
+import com.askew137.gcwatch.wear.WearApplication
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -65,6 +70,7 @@ fun WearApp(
     GcWatchTheme(config = config) {
         val navController = rememberSwipeDismissableNavController()
 
+        Box {
         SwipeDismissableNavHost(
             navController = navController,
             startDestination = DEST_MAP,
@@ -97,6 +103,16 @@ fun WearApp(
                     onNavigateToMap = { navController.popBackStack() },
                 )
             }
+        }
+
+        // A newer watch APK sent by the phone: offer to install it (Android needs the tap).
+        val context = LocalContext.current
+        val pendingUpdate by (context.applicationContext as WearApplication)
+            .pendingUpdate.collectAsStateWithLifecycle()
+        var updateLater by remember { mutableStateOf(false) }
+        pendingUpdate?.let { apk ->
+            if (!updateLater) UpdatePrompt(context, apk, onLater = { updateLater = true })
+        }
         }
     }
 }

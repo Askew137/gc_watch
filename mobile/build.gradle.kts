@@ -17,8 +17,17 @@ android {
         applicationId = "com.askew137.gcwatch"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = providers.gradleProperty("gcwatch.versionCode").get().toInt()
+        versionName = providers.gradleProperty("gcwatch.versionName").get()
+
+        // Where the updater looks for the latest release; overridable for local testing
+        // (-Pgcwatch.updateUrl=http://10.0.2.2:8000/latest.json).
+        buildConfigField(
+            "String",
+            "UPDATE_URL",
+            "\"" + (providers.gradleProperty("gcwatch.updateUrl").orNull
+                ?: "https://api.github.com/repos/Askew137/gc_watch/releases/latest") + "\"",
+        )
     }
 
     signingConfigs {
