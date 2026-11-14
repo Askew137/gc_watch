@@ -1,7 +1,6 @@
 package com.askew137.gcwatch.wear.ui.map
 
 import androidx.compose.foundation.background
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Chip
+import androidx.wear.compose.material.SwipeToDismissBox
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Switch
@@ -71,12 +71,15 @@ fun BottomMenuSheet(
     androidx.activity.compose.BackHandler(onBack = onDismiss)
     val tabs = listOf("Mapy", "Vzhled", "Ostatní")
 
-    Box(
+    // Swipe right to close (the standard Wear gesture); without this wrapper the swipe would
+    // be handled by the navigation host and leave the screen / the app.
+    SwipeToDismissBox(onDismissed = onDismiss) { isBackground ->
+      if (!isBackground) Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Black)
             .clickable(onClick = {}), // consume clicks
-    ) {
+      ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -124,23 +127,7 @@ fun BottomMenuSheet(
                 )
             }
         }
-
-        // Visible way back to the map (the swipe/back gesture does the same).
-        com.askew137.gcwatch.wear.ui.components.IconButton(
-            onClick = onDismiss,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 6.dp)
-                .size(34.dp)
-                .background(Color.DarkGray.copy(alpha = 0.7f), CircleShape),
-        ) {
-            androidx.wear.compose.material.Icon(
-                androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Zpět na mapu",
-                modifier = Modifier.size(20.dp),
-                tint = Color.White,
-            )
-        }
+    }
     }
 }
 
