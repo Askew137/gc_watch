@@ -150,7 +150,7 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val release = UpdateChecker.releaseFor(targetName)
             if (release == null) {
-                AppUpdater.fail("Release v$targetName not found on GitHub")
+                AppUpdater.fail("Could not load the release v$targetName (no connection to the update server, or that release does not exist)")
             } else {
                 AppUpdater.catchUp(app, release, updateWatch = !phoneBehind, updatePhone = phoneBehind)
             }

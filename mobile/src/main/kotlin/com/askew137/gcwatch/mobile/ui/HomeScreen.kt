@@ -63,6 +63,23 @@ fun HomeScreen(
         viewModel.refreshConnectedNode()
         viewModel.refreshWatchVersion()
     }
+    val toastContext = LocalContext.current
+    // A failed update must be noticeable, not just a small line inside a card.
+    androidx.compose.runtime.LaunchedEffect(updateState) {
+        (updateState as? AppUpdater.State.Failed)?.let {
+            android.widget.Toast.makeText(toastContext, "Update failed: ${it.message}", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+    // After a watch-only update the watch reinstalls itself without telling us: re-ask until the
+    // versions match (the mismatch card then disappears on its own) or we give up.
+    androidx.compose.runtime.LaunchedEffect(updateState) {
+        if (updateState is AppUpdater.State.AwaitingWatchConfirmation) {
+            repeat(30) {
+                kotlinx.coroutines.delay(10_000)
+                viewModel.refreshWatchVersion()
+            }
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
