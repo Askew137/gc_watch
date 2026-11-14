@@ -175,7 +175,7 @@ fun CompassScreen(
     }
 }
 
-private fun formatDistance(distanceM: Float, units: Units): String {
+internal fun formatDistance(distanceM: Float, units: Units): String {
     return if (units == Units.METRIC) {
         if (distanceM < 1000f) {
             "${distanceM.roundToInt()} m"

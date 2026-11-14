@@ -33,11 +33,24 @@ class GnssRepository(private val context: Context) : ViewModel() {
     private val _location = MutableStateFlow<WatchLocation?>(null)
     val location: StateFlow<WatchLocation?> = _location.asStateFlow()
 
+    /** Ambient (screen dimmed): the picture only refreshes about once a minute, so ask the GPS less often. */
+    private var ambient = false
+
     private var activeJob: Job? = null
     private var watchdogJob: Job? = null
 
     init {
         switchSource(GpsSource.WATCH_HARDWARE)
+    }
+
+    /** Fix interval of the watch GPS: every second normally, every 10 s while ambient (battery). */
+    fun setAmbient(value: Boolean) {
+        if (ambient == value) return
+        ambient = value
+        if (_source.value == GpsSource.WATCH_HARDWARE) {
+            activeJob?.cancel()
+            startHardwareFlow()
+        }
     }
 
     /** Cancel the previous flow and start a new one for [src]. */
@@ -65,7 +78,7 @@ class GnssRepository(private val context: Context) : ViewModel() {
 
         activeJob = viewModelScope.launch {
             @Suppress("MissingPermission")
-            hardwareManager.locationFlow(intervalMs = 1_000L).collect { loc ->
+            hardwareManager.locationFlow(intervalMs = if (ambient) 10_000L else 1_000L).collect { loc ->
                 _location.value = WatchLocation.fromAndroidLocation(loc)
             }
         }

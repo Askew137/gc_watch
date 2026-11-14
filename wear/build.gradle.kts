@@ -62,6 +62,7 @@ android {
 dependencies {
     implementation(platform(libs.compose.bom))
     // Wear OS Compose
+    implementation(libs.androidx.wear) // AmbientLifecycleObserver
     implementation(libs.wear.compose.material)
     implementation(libs.wear.compose.foundation)
     implementation(libs.wear.compose.navigation)

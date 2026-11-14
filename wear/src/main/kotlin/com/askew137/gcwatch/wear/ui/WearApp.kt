@@ -40,6 +40,7 @@ fun WearApp(
     gnssRepository: GnssRepository,
     mapEngine: MapEngineService,
     autoMapSelector: AutoMapSelector,
+    isAmbient: Boolean = false,
 ) {
     val config by configViewModel.config.collectAsStateWithLifecycle()
     val location by gnssRepository.location.collectAsStateWithLifecycle()
@@ -75,7 +76,10 @@ fun WearApp(
     GcWatchTheme(config = config) {
         val navController = rememberSwipeDismissableNavController()
 
-        Box {
+        if (isAmbient) {
+            // Dimmed, minimal screen; the map is not drawn at all while ambient.
+            AmbientScreen(target = navigationTarget, units = config.units)
+        } else Box {
         SwipeDismissableNavHost(
             navController = navController,
             startDestination = DEST_MAP,
