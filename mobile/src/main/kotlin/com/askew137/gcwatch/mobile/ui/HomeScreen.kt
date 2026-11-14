@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.askew137.gcwatch.mobile.update.AppUpdater
+import com.askew137.gcwatch.mobile.update.WatchVersion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -57,7 +58,11 @@ fun HomeScreen(
     val updateInfo by viewModel.updateInfo.collectAsState()
     val updateInProgress by viewModel.updateCheckInProgress.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refreshConnectedNode() }
+    val watchVersion by viewModel.watchVersion.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.refreshConnectedNode()
+        viewModel.refreshWatchVersion()
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -188,6 +193,61 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // ── Phone / watch version mismatch ───────────────────────────────
+            val phoneCode = com.askew137.gcwatch.mobile.BuildConfig.VERSION_CODE.toLong()
+            val mismatch = when (val w = watchVersion) {
+                is WatchVersion.State.Known -> w.code != phoneCode
+                WatchVersion.State.NoAnswer -> true
+                WatchVersion.State.Unknown -> false
+            }
+            if (mismatch) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            when (val w = watchVersion) {
+                                is WatchVersion.State.Known ->
+                                    "The watch runs ${w.name}, the phone ${com.askew137.gcwatch.mobile.BuildConfig.VERSION_NAME}."
+                                else -> "The watch did not report its version (probably an older app)."
+                            },
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            "Different versions may not understand each other (targets, routes or settings can stop working).",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                        val st = updateState
+                        if (st is AppUpdater.State.Working || st is AppUpdater.State.Failed || st is AppUpdater.State.AwaitingWatchConfirmation) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                when (st) {
+                                    is AppUpdater.State.Working -> st.step + if (st.percent >= 0) " ${st.percent} %" else "…"
+                                    is AppUpdater.State.Failed -> "Failed: ${st.message}"
+                                    else -> "Open GC Watch on the watch and confirm the installation."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            enabled = updateState !is AppUpdater.State.Working,
+                            onClick = {
+                                if (viewModel.canInstallApks()) viewModel.alignVersions(watchVersion)
+                                else viewModel.openInstallPermissionSettings()
+                            },
+                        ) {
+                            Text(if (viewModel.canInstallApks()) "Bring both to the same version" else "Allow installing, then tap again")
+                        }
+                    }
+                }
+            }
+
             // ── Update check ─────────────────────────────────────────────────
             Button(
                 onClick = {
@@ -236,6 +296,8 @@ fun HomeScreen(
                                     st.step + if (st.percent >= 0) " ${st.percent} %" else "…"
                                 AppUpdater.State.AwaitingConfirmation ->
                                     "Confirm the installation on the phone. Also confirm it on the watch (open GC Watch there)."
+                                AppUpdater.State.AwaitingWatchConfirmation ->
+                                    "Open GC Watch on the watch and confirm the installation."
                                 is AppUpdater.State.Failed -> "Update failed: ${st.message}"
                                 AppUpdater.State.Idle ->
                                     if (info.canUpdateInApp) "Updates the phone and the watch (the watch must be connected)."

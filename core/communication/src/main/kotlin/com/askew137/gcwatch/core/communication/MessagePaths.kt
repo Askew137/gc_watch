@@ -28,6 +28,12 @@ object MessagePaths {
     /** Phone → Watch (ChannelClient path): the watch APK of a new release; the watch asks to install it. */
     const val CHANNEL_UPDATE_WEAR_APK = "/update/wear.apk"
 
+    /** Phone → Watch: "which version are you?" (empty payload). */
+    const val VERSION_REQUEST = "/version_request"
+
+    /** Watch → Phone: answer, payload `"<versionCode>|<versionName>"` as UTF-8 text. */
+    const val VERSION_RESULT = "/version_result"
+
     /** Watch → Phone: the update APK arrived and is stored (the phone may close the channel). */
     const val UPDATE_WEAR_RECEIVED = "/update/wear_received"
 }

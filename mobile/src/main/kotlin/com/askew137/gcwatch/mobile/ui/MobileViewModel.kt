@@ -131,6 +131,31 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     val updateState = AppUpdater.state
+    val watchVersion = com.askew137.gcwatch.mobile.update.WatchVersion.state
+
+    fun refreshWatchVersion() {
+        viewModelScope.launch { com.askew137.gcwatch.mobile.update.WatchVersion.refresh(app) }
+    }
+
+    /**
+     * Phone and watch run different versions: fetch the newer one's release and update the
+     * side that is behind. [watch] is what the watch reported (NoAnswer = assume it is behind).
+     */
+    fun alignVersions(watch: com.askew137.gcwatch.mobile.update.WatchVersion.State) {
+        val phoneCode = com.askew137.gcwatch.mobile.BuildConfig.VERSION_CODE.toLong()
+        val phoneName = com.askew137.gcwatch.mobile.BuildConfig.VERSION_NAME
+        val known = watch as? com.askew137.gcwatch.mobile.update.WatchVersion.State.Known
+        val phoneBehind = known != null && known.code > phoneCode
+        val targetName = if (phoneBehind) known!!.name else phoneName
+        viewModelScope.launch {
+            val release = UpdateChecker.releaseFor(targetName)
+            if (release == null) {
+                AppUpdater.fail("Release v$targetName not found on GitHub")
+            } else {
+                AppUpdater.catchUp(app, release, updateWatch = !phoneBehind, updatePhone = phoneBehind)
+            }
+        }
+    }
 
     fun canInstallApks(): Boolean = ApkInstaller.canInstall(app)
 

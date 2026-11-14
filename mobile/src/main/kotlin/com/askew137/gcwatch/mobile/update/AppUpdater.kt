@@ -37,6 +37,8 @@ object AppUpdater {
         data class Working(val step: String, val percent: Int = -1) : State
         /** Phone installer dialog is open; the app restarts after the user confirms. */
         data object AwaitingConfirmation : State
+        /** Watch-only update: the watch now asks the user to install. */
+        data object AwaitingWatchConfirmation : State
         data class Failed(val message: String) : State
     }
 
@@ -55,6 +57,10 @@ object AppUpdater {
         if (_state.value !is State.Working) _state.value = State.Idle
     }
 
+    fun fail(message: String) {
+        _state.value = State.Failed(message)
+    }
+
     /** The watch confirmed that it received and stored the APK. */
     fun onWatchAck() {
         watchAck?.complete(Unit)
@@ -68,6 +74,25 @@ object AppUpdater {
             _state.value = State.Failed("The release has no APK files")
             return
         }
+        launch(app, mobileUrl, wearUrl)
+    }
+
+    /**
+     * Brings phone and watch to the same version: updates only the side that is behind, using
+     * the release [info] of the newer version.
+     */
+    fun catchUp(app: MobileApplication, info: UpdateInfo, updateWatch: Boolean, updatePhone: Boolean) {
+        if (_state.value is State.Working) return
+        val mobileUrl = if (updatePhone) info.mobileApkUrl else null
+        val wearUrl = if (updateWatch) info.wearApkUrl else null
+        if ((updatePhone && mobileUrl == null) || (updateWatch && wearUrl == null) || (mobileUrl == null && wearUrl == null)) {
+            _state.value = State.Failed("The release has no APK files")
+            return
+        }
+        launch(app, mobileUrl, wearUrl)
+    }
+
+    private fun launch(app: MobileApplication, mobileUrl: String?, wearUrl: String?) {
         _state.value = State.Working("Starting")
         app.appScope.launch {
             try {
@@ -79,23 +104,31 @@ object AppUpdater {
         }
     }
 
-    private suspend fun run(app: Context, mobileUrl: String, wearUrl: String) {
+    /** A null URL skips that side. The watch goes first (installing the phone app restarts it). */
+    private suspend fun run(app: Context, mobileUrl: String?, wearUrl: String?) {
         val dir = File(app.cacheDir, "updates").apply { deleteRecursively(); mkdirs() }
         val mobile = File(dir, "mobile.apk")
         val wear = File(dir, "wear.apk")
 
-        download(mobileUrl, mobile, "Downloading phone app")
-        download(wearUrl, wear, "Downloading watch app")
+        if (mobileUrl != null) download(mobileUrl, mobile, "Downloading phone app")
+        if (wearUrl != null) download(wearUrl, wear, "Downloading watch app")
 
-        ApkInstaller.verifyUpdate(app, mobile)?.let { error("Phone APK rejected: $it") }
-        val wearInfo = app.packageManager.getPackageArchiveInfo(wear.absolutePath, 0)
-        if (wearInfo?.packageName != app.packageName) error("Watch APK has the wrong package")
+        if (mobileUrl != null) {
+            ApkInstaller.verifyUpdate(app, mobile)?.let { error("Phone APK rejected: $it") }
+        }
+        if (wearUrl != null) {
+            val wearInfo = app.packageManager.getPackageArchiveInfo(wear.absolutePath, 0)
+            if (wearInfo?.packageName != app.packageName) error("Watch APK has the wrong package")
+            _state.value = State.Working("Sending to the watch")
+            sendToWatch(app, wear)
+        }
 
-        _state.value = State.Working("Sending to the watch")
-        sendToWatch(app, wear)
-
-        _state.value = State.AwaitingConfirmation
-        ApkInstaller.install(app, mobile)
+        if (mobileUrl != null) {
+            _state.value = State.AwaitingConfirmation
+            ApkInstaller.install(app, mobile)
+        } else {
+            _state.value = State.AwaitingWatchConfirmation
+        }
     }
 
     private fun download(url: String, target: File, step: String) {

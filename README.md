@@ -69,4 +69,8 @@ Aplikace na telefonu pak nabídne **Update phone + watch**. Podmínky:
 - hodinky musí být připojené; instalaci potvrzujete na obou zařízeních (Android to vyžaduje; Play Protect může nabídnout sken – vyberte „Install without scanning“),
 - aktualizace funguje jen s APK podepsanými stejným klíčem.
 
+**Soulad verzí:** telefon se při otevření zeptá hodinek na verzi. Liší-li se (nebo hodinky neodpoví), ukáže upozornění s tlačítkem „Bring both to the same version“, které stáhne release té novější verze a aktualizuje jen ten zařízení, které je pozadu. Zprávy mezi telefonem a hodinkami se totiž při změně formátu u jiné verze nemusí dát přečíst.
+
+**Pojistka proti špatné verzi:** release nejdřív vydejte jako **pre-release** (volba „Set as a pre-release“). Updater používá `releases/latest`, který pre-release neodvrací, takže o něm aplikace neví. Nainstalujte ho ručně na svá zařízení, vyzkoušejte, a teprve potom ho v GitHubu přepněte na „latest“. Android nedovoluje vrátit starší verzi bez odinstalace, takže opravou špatné verze je vždy vyšší verze.
+
 Test bez GitHubu: `-Pgcwatch.updateUrl=http://10.0.2.2:8000/latest.json` (debug build, JSON ve tvaru GitHub API `releases/latest`).

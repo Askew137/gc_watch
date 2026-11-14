@@ -35,7 +35,19 @@ class WearMessageService : WearableListenerService() {
             MessagePaths.SET_TARGET -> navigationRepo.onSetTarget(event.data)
             MessagePaths.ROUTE_RESULT -> navigationRepo.onRouteResult(event.data)
             MessagePaths.CONFIG_SYNC -> configRepo.onRemoteSync(event.data)
+            MessagePaths.VERSION_REQUEST -> answerVersion(event.sourceNodeId)
             else -> Timber.d("WearMessageService: unhandled path %s", event.path)
+        }
+    }
+
+    /** Tells the phone which version runs here, so it can warn about a mismatch. */
+    private fun answerVersion(nodeId: String) {
+        try {
+            val info = packageManager.getPackageInfo(packageName, 0)
+            val payload = "${info.longVersionCode}|${info.versionName}".toByteArray(Charsets.UTF_8)
+            Tasks.await(Wearable.getMessageClient(this).sendMessage(nodeId, MessagePaths.VERSION_RESULT, payload))
+        } catch (e: Exception) {
+            Timber.e(e, "WearMessageService: could not answer the version request")
         }
     }
 

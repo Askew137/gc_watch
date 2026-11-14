@@ -31,25 +31,36 @@ object UpdateChecker {
      * @param currentVersion Semantic version string of the installed app, e.g. "1.0.0".
      * @return [UpdateInfo] if a newer release exists, or `null` if up to date / network error.
      */
-    suspend fun checkForUpdate(currentVersion: String): UpdateInfo? = withContext(Dispatchers.IO) {
-        // Blocking OkHttp call: must not run on the main thread (the caller is a viewModelScope).
+    suspend fun checkForUpdate(currentVersion: String): UpdateInfo? {
+        val info = fetch(RELEASES_URL) ?: return null
+        Timber.d("Latest GitHub release: ${info.version} (installed: $currentVersion)")
+        return info.takeIf { isNewerVersion(remote = it.version, current = currentVersion) }
+    }
+
+    /**
+     * The release for exactly [versionName] (tag `v<versionName>`), whatever is installed.
+     * Used to bring the phone and the watch to the same version.
+     */
+    suspend fun releaseFor(versionName: String): UpdateInfo? =
+        fetch(RELEASES_URL.replace("/latest", "/tags/v$versionName"))
+
+    private suspend fun fetch(url: String): UpdateInfo? = withContext(Dispatchers.IO) {
+        // Blocking OkHttp call: must not run on the main thread (callers are viewModelScopes).
         try {
             val request = Request.Builder()
-                .url(RELEASES_URL)
+                .url(url)
                 .header("Accept", "application/vnd.github+json")
                 .build()
 
             val body = client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    Timber.w("GitHub API returned HTTP ${response.code}")
+                    Timber.w("GitHub API returned HTTP ${response.code} for $url")
                     return@withContext null
                 }
                 response.body?.string() ?: return@withContext null
             }
 
             val json = JSONObject(body)
-            val tagName    = json.getString("tag_name").trimStart('v')
-            val releaseUrl = json.getString("html_url")
             val assets = json.optJSONArray("assets")
             fun assetUrl(name: String): String? {
                 if (assets == null) return null
@@ -60,21 +71,15 @@ object UpdateChecker {
                 return null
             }
 
-            Timber.d("Latest GitHub release: $tagName (installed: $currentVersion)")
-
-            if (isNewerVersion(remote = tagName, current = currentVersion)) {
-                UpdateInfo(
-                    version = tagName,
-                    releaseUrl = releaseUrl,
-                    mobileApkUrl = assetUrl("mobile-release.apk"),
-                    wearApkUrl = assetUrl("wear-release.apk"),
-                )
-            } else {
-                null
-            }
+            UpdateInfo(
+                version = json.getString("tag_name").trimStart('v'),
+                releaseUrl = json.getString("html_url"),
+                mobileApkUrl = assetUrl("mobile-release.apk"),
+                wearApkUrl = assetUrl("wear-release.apk"),
+            )
         } catch (e: Exception) {
             // Silent fail – update check is non-critical.
-            Timber.w(e, "Update check failed (silent)")
+            Timber.w(e, "Release lookup failed (silent)")
             null
         }
     }
