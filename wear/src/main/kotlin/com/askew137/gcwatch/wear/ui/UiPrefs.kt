@@ -18,7 +18,10 @@ object UiPrefs {
     private const val KEY_REACTION = "heading_reaction"
     private const val KEY_AMBIENT_GPS_S = "ambient_gps_seconds"
 
-    val AMBIENT_GPS_CHOICES_S = listOf(10, 30, 60)
+    /** The ambient GPS interval slider: 5 s ... 60 s in steps of 5. */
+    const val AMBIENT_GPS_MIN_S = 5
+    const val AMBIENT_GPS_MAX_S = 60
+    const val AMBIENT_GPS_STEP_S = 5
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -32,7 +35,7 @@ object UiPrefs {
 
     /** How often the watch GPS asks for a fix while the screen is in ambient mode. */
     fun ambientGpsSeconds(context: Context): Int =
-        prefs(context).getInt(KEY_AMBIENT_GPS_S, 10).takeIf { it in AMBIENT_GPS_CHOICES_S } ?: 10
+        prefs(context).getInt(KEY_AMBIENT_GPS_S, 10).coerceIn(AMBIENT_GPS_MIN_S, AMBIENT_GPS_MAX_S)
 
     fun setAmbientGpsSeconds(context: Context, seconds: Int) {
         prefs(context).edit().putInt(KEY_AMBIENT_GPS_S, seconds).apply()

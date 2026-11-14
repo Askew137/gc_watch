@@ -31,6 +31,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Chip
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Add
+import androidx.wear.compose.material.Icon
+import androidx.wear.compose.material.InlineSlider
 import androidx.wear.compose.material.SwipeToDismissBox
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.MaterialTheme
@@ -301,28 +305,31 @@ private fun OstatniTab(
                 checkedEndBackgroundColor = Color.Transparent,
             ),
         )
-        Spacer(Modifier.height(6.dp))
-        // Tap to cycle through the choices.
-        Chip(
-            onClick = {
-                val all = com.askew137.gcwatch.wear.ui.HeadingReaction.entries
-                onReactionChange(all[(all.indexOf(reaction) + 1) % all.size])
-            },
-            label = { Text("Reakce kuželu", fontSize = 11.sp, maxLines = 1) },
-            secondaryLabel = { Text(reaction.label, fontSize = 9.sp, color = Color.Gray) },
-            colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
-            modifier = Modifier.fillMaxWidth(),
+        Spacer(Modifier.height(8.dp))
+        // Cone reaction: three positions (fast / normal / frugal), shown from slow to fast.
+        val reactions = com.askew137.gcwatch.wear.ui.HeadingReaction.entries.reversed() // ECO, NORMAL, FAST
+        Text("Reakce kuželu: ${reaction.label}", fontSize = 11.sp, color = Color.White)
+        InlineSlider(
+            value = reactions.indexOf(reaction).toFloat(),
+            onValueChange = { onReactionChange(reactions[it.toInt().coerceIn(0, reactions.lastIndex)]) },
+            increaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Add, "Rychleji", Modifier.size(18.dp)) },
+            decreaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Remove, "Pomaleji", Modifier.size(18.dp)) },
+            valueRange = 0f..2f,
+            steps = 1,
         )
-        Spacer(Modifier.height(4.dp))
-        Chip(
-            onClick = {
-                val all = com.askew137.gcwatch.wear.ui.UiPrefs.AMBIENT_GPS_CHOICES_S
-                onAmbientGpsSecondsChange(all[(all.indexOf(ambientGpsSeconds) + 1) % all.size])
-            },
-            label = { Text("GPS při zhasnutí", fontSize = 11.sp, maxLines = 1) },
-            secondaryLabel = { Text("každých $ambientGpsSeconds s", fontSize = 9.sp, color = Color.Gray) },
-            colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
-            modifier = Modifier.fillMaxWidth(),
+        Spacer(Modifier.height(6.dp))
+        // GPS interval while ambient: 5 s .. 60 s.
+        val minS = com.askew137.gcwatch.wear.ui.UiPrefs.AMBIENT_GPS_MIN_S
+        val maxS = com.askew137.gcwatch.wear.ui.UiPrefs.AMBIENT_GPS_MAX_S
+        val stepS = com.askew137.gcwatch.wear.ui.UiPrefs.AMBIENT_GPS_STEP_S
+        Text("GPS při zhasnutí: každých $ambientGpsSeconds s", fontSize = 11.sp, color = Color.White)
+        InlineSlider(
+            value = ambientGpsSeconds.toFloat(),
+            onValueChange = { onAmbientGpsSecondsChange((Math.round(it / stepS) * stepS).coerceIn(minS, maxS)) },
+            increaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Add, "Méně často", Modifier.size(18.dp)) },
+            decreaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Remove, "Častěji", Modifier.size(18.dp)) },
+            valueRange = minS.toFloat()..maxS.toFloat(),
+            steps = (maxS - minS) / stepS - 1,
         )
     }
 }
