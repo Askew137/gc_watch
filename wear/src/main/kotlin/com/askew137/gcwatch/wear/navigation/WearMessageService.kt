@@ -92,6 +92,7 @@ class WearMessageService : WearableListenerService() {
             if (dest.exists()) dest.delete()
             if (tmp.renameTo(dest)) {
                 Timber.i("WearMessageService: map %s received (%d bytes)", fileName, total)
+                (applicationContext as WearApplication).mapsRevision.value++
             } else {
                 Timber.e("WearMessageService: could not move %s into place", fileName)
             }

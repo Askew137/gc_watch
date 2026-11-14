@@ -42,4 +42,22 @@ class AutoMapSelector(private val context: Context) {
             Timber.d("AutoMapSelector: %d/%d maps contain (%.4f, %.4f)", selected.size, available.size, lat, lon)
         }
     }
+
+    /**
+     * Centre of the first available map's bounding box: a sensible place to show before the
+     * first GPS fix (otherwise the map would sit on the default location, usually off the map).
+     */
+    fun firstMapCenter(): Pair<Double, Double>? {
+        for (file in availableMapFiles().sortedBy { it.name }) {
+            try {
+                val mapFile = MapFile(file)
+                val center = mapFile.mapFileInfo.boundingBox.centerPoint
+                mapFile.close()
+                return center.latitude to center.longitude
+            } catch (e: Exception) {
+                Timber.e(e, "AutoMapSelector: failed to read bounding box from %s", file.name)
+            }
+        }
+        return null
+    }
 }

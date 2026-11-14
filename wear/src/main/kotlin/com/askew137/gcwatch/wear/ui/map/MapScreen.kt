@@ -60,6 +60,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.FocusRequester
 import timber.log.Timber
+import com.askew137.gcwatch.wear.WearApplication
 import java.io.File
 
 /**
@@ -109,18 +110,27 @@ fun MapScreen(
 
     val accentColor = remember(config.accentColor) { config.accentColor.toComposeColor() }
 
-    val center = remember(location) {
-        location?.let { LatLon(it.lat, it.lon) } ?: LatLon(50.0755, 14.4378) // Prague fallback
+    // Re-read the map list when a new map file arrives while the app is open.
+    val mapsRevision by (context.applicationContext as WearApplication)
+        .mapsRevision.collectAsStateWithLifecycle()
+
+    // Without a GPS fix: show the target, else the middle of the first map, so the map is not
+    // blank (it used to sit on Prague, which is outside most maps).
+    val center = remember(location, activeTarget, mapsRevision) {
+        location?.let { LatLon(it.lat, it.lon) }
+            ?: activeTarget?.let { LatLon(it.lat, it.lon) }
+            ?: autoMapSelector.firstMapCenter()?.let { LatLon(it.first, it.second) }
+            ?: LatLon(50.0755, 14.4378)
     }
 
     // Map file management
     var showMenu by remember { mutableStateOf(false) }
-    val availableMaps = remember(autoMapSelector, showMenu) { autoMapSelector.availableMapFiles() }
+    val availableMaps = remember(autoMapSelector, showMenu, mapsRevision) { autoMapSelector.availableMapFiles() }
     var selectedMaps by remember { mutableStateOf<List<File>>(emptyList()) }
     var automaticMapSelection by remember { mutableStateOf(true) }
 
     // Update engine when map files change
-    val effectiveMaps by remember(automaticMapSelection, selectedMaps, center) {
+    val effectiveMaps by remember(automaticMapSelection, selectedMaps, center, mapsRevision) {
         derivedStateOf {
             if (automaticMapSelection) {
                 autoMapSelector.selectMapsForPosition(center.lat, center.lon, true)

@@ -1,6 +1,7 @@
 package com.askew137.gcwatch.wear.ui.map
 
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,6 +66,9 @@ fun BottomMenuSheet(
     onDismiss: () -> Unit,
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    // The system back gesture closes the sheet instead of leaving the screen.
+    androidx.activity.compose.BackHandler(onBack = onDismiss)
     val tabs = listOf("Mapy", "Vzhled", "Ostatní")
 
     Box(
@@ -119,6 +123,23 @@ fun BottomMenuSheet(
                     onGpsSourceChange = onGpsSourceChange,
                 )
             }
+        }
+
+        // Visible way back to the map (the swipe/back gesture does the same).
+        com.askew137.gcwatch.wear.ui.components.IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 6.dp)
+                .size(34.dp)
+                .background(Color.DarkGray.copy(alpha = 0.7f), CircleShape),
+        ) {
+            androidx.wear.compose.material.Icon(
+                androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = "Zpět na mapu",
+                modifier = Modifier.size(20.dp),
+                tint = Color.White,
+            )
         }
     }
 }

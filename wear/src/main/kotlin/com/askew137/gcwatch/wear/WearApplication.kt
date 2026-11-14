@@ -21,6 +21,9 @@ class WearApplication : Application() {
     /** A newer watch APK that the phone sent; the UI offers to install it. */
     val pendingUpdate = MutableStateFlow<File?>(null)
 
+    /** Bumped when a map file arrives, so the map screen re-reads the list without a restart. */
+    val mapsRevision = MutableStateFlow(0)
+
     override fun onCreate() {
         super.onCreate()
         if (BuildConfig.DEBUG) {
