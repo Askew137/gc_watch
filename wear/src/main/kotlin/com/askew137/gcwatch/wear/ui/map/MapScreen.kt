@@ -126,8 +126,12 @@ fun MapScreen(
     // Map file management
     var showMenu by remember { mutableStateOf(false) }
     val availableMaps = remember(autoMapSelector, showMenu, mapsRevision) { autoMapSelector.availableMapFiles() }
-    var selectedMaps by remember { mutableStateOf<List<File>>(emptyList()) }
-    var automaticMapSelection by remember { mutableStateOf(true) }
+    // Restored from the watch's preferences (they used to be lost when leaving the screen).
+    var selectedMaps by remember {
+        val saved = MapSelectionPrefs.selectedNames(context)
+        mutableStateOf(autoMapSelector.availableMapFiles().filter { it.name in saved })
+    }
+    var automaticMapSelection by remember { mutableStateOf(MapSelectionPrefs.automatic(context)) }
 
     // Update engine when map files change
     val effectiveMaps by remember(automaticMapSelection, selectedMaps, center, mapsRevision) {
@@ -274,10 +278,17 @@ fun MapScreen(
                 automaticMapSelection = automaticMapSelection,
                 onConfigChange = onConfigChange,
                 gpsSource = gnssSource,
-                onGpsSourceChange = { gnssRepository.switchSource(it) },
+                onGpsSourceChange = {
+                    gnssRepository.switchSource(it)
+                    // Remember the user's choice (a temporary fallback to the watch GPS does not).
+                    onConfigChange(config.copy(gpsSource = it))
+                },
                 onMapSelectionChange = { maps, auto ->
-                    selectedMaps = maps
+                    // Turning "automatic" off with nothing selected would leave the map blank.
+                    val chosen = if (!auto && maps.isEmpty()) availableMaps else maps
+                    selectedMaps = chosen
                     automaticMapSelection = auto
+                    MapSelectionPrefs.save(context, auto, chosen.map { it.name }.toSet())
                 },
                 onDismiss = { showMenu = false },
             )

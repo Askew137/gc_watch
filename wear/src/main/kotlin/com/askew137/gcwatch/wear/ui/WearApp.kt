@@ -49,6 +49,11 @@ fun WearApp(
     val routePending by navigationViewModel.routePending.collectAsStateWithLifecycle()
     val routeRequestNeeded by navigationViewModel.routeRequestNeeded.collectAsStateWithLifecycle()
 
+    // Apply the saved GPS source once at start (the repository always begins with the watch GPS).
+    LaunchedEffect(Unit) {
+        if (config.gpsSource != gnssRepository.source.value) gnssRepository.switchSource(config.gpsSource)
+    }
+
     // Ask the phone for the route as soon as there is a target AND a GPS fix, so it is ready
     // before the user switches to it. Re-keyed only when the need or the first fix changes.
     val hasFix = location != null
