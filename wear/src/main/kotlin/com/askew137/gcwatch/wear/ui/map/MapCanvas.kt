@@ -139,16 +139,22 @@ private fun DrawScope.drawTiles(
     val startX = centerTileX - tilesX / 2
     val startY = centerTileY - tilesY / 2
 
-    for (tx in startX..startX + tilesX) {
-        for (ty in startY..startY + tilesY) {
-            val bitmap: Bitmap = engine.renderTile(tx.toLong(), ty.toLong(), zoom) ?: continue
-            val px = (tx - centerTileX) * scale + canvasW / 2 - offX
-            val py = (ty - centerTileY) * scale + canvasH / 2 - offY
-            drawImage(
-                image = bitmap.asImageBitmap(),
-                topLeft = Offset(kotlin.math.round(px), kotlin.math.round(py)),
-            )
+    // Nearest to the centre first, so the tile under the wearer appears before the edges.
+    val coords = (startX..startX + tilesX).flatMap { tx -> (startY..startY + tilesY).map { ty -> tx to ty } }
+        .sortedBy { (tx, ty) ->
+            val dx = (tx - centerTileX).toFloat()
+            val dy = (ty - centerTileY).toFloat()
+            dx * dx + dy * dy
         }
+    val images = engine.tilesFor(coords.map { (tx, ty) -> Triple(tx, ty, zoom.toInt()) })
+    coords.forEachIndexed { i, (tx, ty) ->
+        val image = images[i] ?: return@forEachIndexed
+        val px = (tx - centerTileX) * scale + canvasW / 2 - offX
+        val py = (ty - centerTileY) * scale + canvasH / 2 - offY
+        drawImage(
+            image = image,
+            topLeft = Offset(kotlin.math.round(px), kotlin.math.round(py)),
+        )
     }
 }
 

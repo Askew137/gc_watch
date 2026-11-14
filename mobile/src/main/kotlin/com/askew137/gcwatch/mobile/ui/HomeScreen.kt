@@ -337,7 +337,14 @@ fun HomeScreen(
                         )
                         if (updateState is AppUpdater.State.Working) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            val pct = (updateState as AppUpdater.State.Working).percent
+                            if (pct >= 0) {
+                                LinearProgressIndicator(progress = { pct / 100f }, modifier = Modifier.fillMaxWidth())
+                            } else {
+                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            OutlinedButton(onClick = { viewModel.cancelUpdate() }) { Text("Cancel") }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         if (info.canUpdateInApp) {

@@ -5,8 +5,16 @@ import com.askew137.gcwatch.core.communication.ApkInstaller
 import com.askew137.gcwatch.core.communication.MessagePaths
 import com.askew137.gcwatch.mobile.ui.MobileApplication
 import com.google.android.gms.wearable.Wearable
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +24,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import timber.log.Timber
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * One-button update of phone AND watch from a GitHub release:
@@ -48,10 +59,23 @@ object AppUpdater {
     @Volatile
     private var watchAck: CompletableDeferred<Unit>? = null
 
+    @Volatile
+    private var job: Job? = null
+
+    /** The watch gets this long without a single byte moving before the transfer is given up. */
+    private const val STALL_MS = 30_000L
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
+
+    /** Stops a running update (download or transfer to the watch). */
+    fun cancel() {
+        job?.cancel()
+        job = null
+        if (_state.value is State.Working) _state.value = State.Idle
+    }
 
     fun reset() {
         if (_state.value !is State.Working) _state.value = State.Idle
@@ -94,12 +118,14 @@ object AppUpdater {
 
     private fun launch(app: MobileApplication, mobileUrl: String?, wearUrl: String?) {
         _state.value = State.Working("Starting")
-        app.appScope.launch {
+        job = app.appScope.launch {
             try {
                 run(app, mobileUrl, wearUrl)
+            } catch (e: CancellationException) {
+                throw e // cancel() already reset the state
             } catch (e: Exception) {
                 Timber.e(e, "Update failed")
-                _state.value = State.Failed(e.message ?: e.javaClass.simpleName)
+                _state.value = State.Failed(friendly(e))
             }
         }
     }
@@ -159,22 +185,91 @@ object AppUpdater {
         }
     }
 
+    /** Turns Data Layer / timeout exceptions into something a user can act on. */
+    private fun friendly(e: Exception): String {
+        val m = e.message ?: e.javaClass.simpleName
+        return when {
+            "Channel closed" in m || e is IOException ->
+                "The transfer to the watch was interrupted ($m). Open GC Watch on the watch, keep the watch awake and close to the phone, and try again."
+            e is kotlinx.coroutines.TimeoutCancellationException ->
+                "The watch did not confirm the file in time. Open GC Watch on the watch and try again."
+            else -> m
+        }
+    }
+
     private suspend fun sendToWatch(context: Context, apk: File) {
         val nodes = Wearable.getNodeClient(context).connectedNodes.await()
         val node = nodes.firstOrNull() ?: error("The watch is not connected")
 
         val ack = CompletableDeferred<Unit>().also { watchAck = it }
         val channelClient = Wearable.getChannelClient(context)
-        val channel = channelClient.openChannel(node.id, MessagePaths.CHANNEL_UPDATE_WEAR_APK).await()
+        val channel = withTimeout(20_000) {
+            channelClient.openChannel(node.id, MessagePaths.CHANNEL_UPDATE_WEAR_APK).await()
+        }
+        val total = apk.length().coerceAtLeast(1)
+        val lastProgress = AtomicLong(System.currentTimeMillis())
+        val stalled = AtomicBoolean(false)
+        val finished = AtomicBoolean(false)
+        _state.value = State.Working("Sending to the watch", 0)
         try {
-            channelClient.getOutputStream(channel).await().use { out ->
-                apk.inputStream().use { it.copyTo(out) }
+            coroutineScope {
+                // A blocked write cannot be interrupted, only ended by closing the channel: the
+                // watchdog does that when no data moves for STALL_MS or when the update is cancelled.
+                val watchdog = launch {
+                    try {
+                        while (isActive) {
+                            delay(2_000)
+                            if (System.currentTimeMillis() - lastProgress.get() > STALL_MS) {
+                                stalled.set(true)
+                                break
+                            }
+                        }
+                    } finally {
+                        if (!finished.get()) withContext(NonCancellable) {
+                            runCatching { withTimeout(2_000) { channelClient.close(channel).await() } }
+                        }
+                    }
+                }
+                try {
+                    withContext(Dispatchers.IO) {
+                        channelClient.getOutputStream(channel).await().use { out ->
+                            apk.inputStream().use { input ->
+                                val buffer = ByteArray(16 * 1024)
+                                var written = 0L
+                                var lastPercent = -1
+                                while (true) {
+                                    val n = input.read(buffer)
+                                    if (n == -1) break
+                                    out.write(buffer, 0, n)
+                                    written += n
+                                    lastProgress.set(System.currentTimeMillis())
+                                    val percent = (written * 100 / total).toInt()
+                                    if (percent != lastPercent) {
+                                        lastPercent = percent
+                                        _state.value = State.Working("Sending to the watch", percent)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    finished.set(true)
+                    // The watch answers once the file is stored; only then is it safe to close.
+                    _state.value = State.Working("Waiting for the watch to confirm")
+                    withTimeout(60_000) { ack.await() }
+                } catch (e: IOException) {
+                    if (stalled.get()) {
+                        error("The watch is not receiving the file (no data moved for ${STALL_MS / 1000} s). " +
+                            "Open GC Watch on the watch, keep it awake and close to the phone, and try again.")
+                    }
+                    throw e
+                } finally {
+                    finished.set(true)
+                    watchdog.cancel()
+                }
             }
-            // The watch answers once the file is stored; only then is it safe to close.
-            withTimeout(60_000) { ack.await() }
         } finally {
             watchAck = null
-            runCatching { withTimeout(2_000) { channelClient.close(channel).await() } }
+            runCatching { withContext(NonCancellable) { withTimeout(2_000) { channelClient.close(channel).await() } } }
         }
     }
 }

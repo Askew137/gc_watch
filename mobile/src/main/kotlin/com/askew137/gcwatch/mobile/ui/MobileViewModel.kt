@@ -170,6 +170,8 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
 
     fun startUpdate(info: com.askew137.gcwatch.mobile.update.UpdateInfo) = AppUpdater.start(app, info)
 
+    fun cancelUpdate() = AppUpdater.cancel()
+
     private val _checkMessage = MutableStateFlow<String?>(null)
     /** Result of a check the user asked for ("up to date" / "no connection"); stays until the next manual check. */
     val checkMessage: StateFlow<String?> = _checkMessage.asStateFlow()
