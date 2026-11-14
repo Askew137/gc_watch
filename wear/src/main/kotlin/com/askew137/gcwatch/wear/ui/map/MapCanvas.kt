@@ -89,8 +89,8 @@ fun MapCanvas(
         // heading of h points at h + rotationDeg clockwise from the top of the screen.
         if (headingDeg != null) {
             val c = center(size)
-            val r = 64.dp.toPx()
-            val half = 28f
+            val r = 50.dp.toPx()
+            val half = 24f
             drawArc(
                 color = accentColor.copy(alpha = 0.32f),
                 startAngle = headingDeg + rotationDeg - 90f - half,

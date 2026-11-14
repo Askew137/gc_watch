@@ -367,6 +367,15 @@ fun HomeScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                "GC Watch v${com.askew137.gcwatch.mobile.BuildConfig.VERSION_NAME} " +
+                    "(${com.askew137.gcwatch.mobile.BuildConfig.VERSION_CODE})",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

@@ -331,5 +331,12 @@ private fun OstatniTab(
             valueRange = minS.toFloat()..maxS.toFloat(),
             steps = (maxS - minS) / stepS - 1,
         )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            "GC Watch v${com.askew137.gcwatch.wear.BuildConfig.VERSION_NAME} (${com.askew137.gcwatch.wear.BuildConfig.VERSION_CODE})",
+            fontSize = 10.sp,
+            color = Color.Gray,
+        )
+        Spacer(Modifier.height(6.dp))
     }
 }
