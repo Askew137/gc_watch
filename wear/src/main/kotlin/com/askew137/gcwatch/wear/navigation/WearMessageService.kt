@@ -44,7 +44,10 @@ class WearMessageService : WearableListenerService() {
     private fun answerVersion(nodeId: String) {
         try {
             val info = packageManager.getPackageInfo(packageName, 0)
-            val payload = "${info.longVersionCode}|${info.versionName}".toByteArray(Charsets.UTF_8)
+            // The name the user gave the watch (Settings > About), else the model.
+            val deviceName = (android.provider.Settings.Global.getString(contentResolver, "device_name")
+                ?: android.os.Build.MODEL).replace('|', ' ')
+            val payload = "${info.longVersionCode}|${info.versionName}|$deviceName".toByteArray(Charsets.UTF_8)
             Tasks.await(Wearable.getMessageClient(this).sendMessage(nodeId, MessagePaths.VERSION_RESULT, payload))
         } catch (e: Exception) {
             Timber.e(e, "WearMessageService: could not answer the version request")

@@ -56,6 +56,7 @@ fun HomeScreen(
 ) {
     val connectedNode by viewModel.connectedNodeName.collectAsState()
     val watchSearching by viewModel.watchSearching.collectAsState()
+    val reportedName by viewModel.watchDeviceName.collectAsState()
     val updateInfo by viewModel.updateInfo.collectAsState()
     val updateInProgress by viewModel.updateCheckInProgress.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
@@ -142,7 +143,7 @@ fun HomeScreen(
                         )
                         if (connectedNode != null) {
                             Text(
-                                text = connectedNode!!,
+                                text = reportedName ?: connectedNode!!,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

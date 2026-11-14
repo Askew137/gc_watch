@@ -135,6 +135,7 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     val updateState = AppUpdater.state
+    val watchDeviceName = com.askew137.gcwatch.mobile.update.WatchVersion.deviceName
     val watchVersion = com.askew137.gcwatch.mobile.update.WatchVersion.state
 
     fun refreshWatchVersion() {
