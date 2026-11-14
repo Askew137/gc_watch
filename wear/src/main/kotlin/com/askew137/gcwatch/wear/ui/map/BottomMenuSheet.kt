@@ -62,6 +62,10 @@ fun BottomMenuSheet(
     onConfigChange: (AppConfig) -> Unit,
     gpsSource: GpsSource,
     onGpsSourceChange: (GpsSource) -> Unit,
+    reaction: com.askew137.gcwatch.wear.ui.HeadingReaction,
+    onReactionChange: (com.askew137.gcwatch.wear.ui.HeadingReaction) -> Unit,
+    ambientGpsSeconds: Int,
+    onAmbientGpsSecondsChange: (Int) -> Unit,
     onMapSelectionChange: (List<File>, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -124,6 +128,10 @@ fun BottomMenuSheet(
                     onConfigChange = onConfigChange,
                     gpsSource = gpsSource,
                     onGpsSourceChange = onGpsSourceChange,
+                    reaction = reaction,
+                    onReactionChange = onReactionChange,
+                    ambientGpsSeconds = ambientGpsSeconds,
+                    onAmbientGpsSecondsChange = onAmbientGpsSecondsChange,
                 )
             }
         }
@@ -245,6 +253,10 @@ private fun OstatniTab(
     onConfigChange: (AppConfig) -> Unit,
     gpsSource: GpsSource,
     onGpsSourceChange: (GpsSource) -> Unit,
+    reaction: com.askew137.gcwatch.wear.ui.HeadingReaction,
+    onReactionChange: (com.askew137.gcwatch.wear.ui.HeadingReaction) -> Unit,
+    ambientGpsSeconds: Int,
+    onAmbientGpsSecondsChange: (Int) -> Unit,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -288,6 +300,29 @@ private fun OstatniTab(
                 checkedStartBackgroundColor = Color.Transparent,
                 checkedEndBackgroundColor = Color.Transparent,
             ),
+        )
+        Spacer(Modifier.height(6.dp))
+        // Tap to cycle through the choices.
+        Chip(
+            onClick = {
+                val all = com.askew137.gcwatch.wear.ui.HeadingReaction.entries
+                onReactionChange(all[(all.indexOf(reaction) + 1) % all.size])
+            },
+            label = { Text("Reakce kuželu", fontSize = 11.sp, maxLines = 1) },
+            secondaryLabel = { Text(reaction.label, fontSize = 9.sp, color = Color.Gray) },
+            colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(4.dp))
+        Chip(
+            onClick = {
+                val all = com.askew137.gcwatch.wear.ui.UiPrefs.AMBIENT_GPS_CHOICES_S
+                onAmbientGpsSecondsChange(all[(all.indexOf(ambientGpsSeconds) + 1) % all.size])
+            },
+            label = { Text("GPS při zhasnutí", fontSize = 11.sp, maxLines = 1) },
+            secondaryLabel = { Text("každých $ambientGpsSeconds s", fontSize = 9.sp, color = Color.Gray) },
+            colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

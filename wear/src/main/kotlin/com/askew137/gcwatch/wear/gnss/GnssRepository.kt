@@ -78,7 +78,7 @@ class GnssRepository(private val context: Context) : ViewModel() {
 
         activeJob = viewModelScope.launch {
             @Suppress("MissingPermission")
-            hardwareManager.locationFlow(intervalMs = if (ambient) 10_000L else 1_000L).collect { loc ->
+            hardwareManager.locationFlow(intervalMs = if (ambient) com.askew137.gcwatch.wear.ui.UiPrefs.ambientGpsSeconds(context) * 1_000L else 1_000L).collect { loc ->
                 _location.value = WatchLocation.fromAndroidLocation(loc)
             }
         }

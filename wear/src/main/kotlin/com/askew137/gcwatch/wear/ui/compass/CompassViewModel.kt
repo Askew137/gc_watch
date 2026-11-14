@@ -7,6 +7,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.askew137.gcwatch.wear.ui.HeadingReaction
+import com.askew137.gcwatch.wear.ui.UiPrefs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,41 +35,88 @@ class CompassViewModel : ViewModel() {
     private val _keepScreenOn = MutableStateFlow(true)
     val keepScreenOn: StateFlow<Boolean> = _keepScreenOn.asStateFlow()
 
+    /** True once the sensor has delivered a heading (so the map does not draw a bogus north cone). */
+    private val _hasHeading = MutableStateFlow(false)
+    val hasHeading: StateFlow<Boolean> = _hasHeading.asStateFlow()
+
     private var sensorManager: SensorManager? = null
     private var sensorListener: SensorEventListener? = null
+    private var appContext: Context? = null
+
+    // Several screens (map cone, compass) share one registration; the sensor runs while any needs it.
+    private var users = 0
+    private var reaction = HeadingReaction.NORMAL
+    private var smoothed: Float? = null
 
     private val rotationMatrix = FloatArray(9)
     private val orientationAngles = FloatArray(3)
 
-    /** Call from Activity.onResume / LaunchedEffect. */
+    /** Call when a screen needs the heading; pair with [stopSensor]. */
     fun startSensor(context: Context) {
+        appContext = context.applicationContext
+        if (users++ == 0) {
+            reaction = UiPrefs.reaction(context)
+            register()
+        }
+    }
+
+    fun stopSensor() {
+        if (users > 0 && --users == 0) unregister()
+    }
+
+    /** Changes how fast the heading follows the wrist; applies immediately if the sensor runs. */
+    fun setReaction(value: HeadingReaction) {
+        reaction = value
+        appContext?.let { UiPrefs.setReaction(it, value) }
+        if (users > 0) {
+            unregister()
+            register()
+        }
+    }
+
+    private fun register() {
+        val context = appContext ?: return
         val sm = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensorManager = sm
-
         val rotationSensor = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
         if (rotationSensor == null) {
             Timber.w("CompassViewModel: TYPE_ROTATION_VECTOR not available")
             return
         }
-
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent) {
-                if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
-                    SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
-                    SensorManager.getOrientation(rotationMatrix, orientationAngles)
-                    // orientationAngles[0] = azimuth in radians
-                    val azRad = orientationAngles[0]
-                    val azDeg = Math.toDegrees(azRad.toDouble()).toFloat()
-                    _azimuthDeg.value = (azDeg + 360f) % 360f
+                if (event.sensor.type != Sensor.TYPE_ROTATION_VECTOR) return
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+                SensorManager.getOrientation(rotationMatrix, orientationAngles)
+                val raw = (Math.toDegrees(orientationAngles[0].toDouble()).toFloat() + 360f) % 360f
+                val previous = smoothed
+                val next = if (previous == null || reaction.smoothing >= 1f) {
+                    raw
+                } else {
+                    // Low-pass over the shortest way round the circle (359 -> 1 must not swing through 180).
+                    var diff = raw - previous
+                    if (diff > 180f) diff -= 360f
+                    if (diff < -180f) diff += 360f
+                    (previous + reaction.smoothing * diff + 360f) % 360f
                 }
+                smoothed = next
+                _azimuthDeg.value = next
+                _hasHeading.value = true
             }
 
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
         }
-
-        sm.registerListener(listener, rotationSensor, SensorManager.SENSOR_DELAY_UI)
+        sm.registerListener(listener, rotationSensor, reaction.sensorDelay)
         sensorListener = listener
-        Timber.d("CompassViewModel: sensor registered")
+        Timber.d("CompassViewModel: sensor registered (%s)", reaction)
+    }
+
+    private fun unregister() {
+        sensorListener?.let { sensorManager?.unregisterListener(it) }
+        sensorListener = null
+        smoothed = null
+        _hasHeading.value = false
+        Timber.d("CompassViewModel: sensor unregistered")
     }
 
     /**
@@ -99,13 +148,6 @@ class CompassViewModel : ViewModel() {
         }
     }
 
-    /** Call from Activity.onPause / DisposableEffect cleanup. */
-    fun stopSensor() {
-        sensorListener?.let { sensorManager?.unregisterListener(it) }
-        sensorListener = null
-        Timber.d("CompassViewModel: sensor unregistered")
-    }
-
     fun toggleCardinals() {
         _showCardinals.value = !_showCardinals.value
     }
@@ -117,6 +159,6 @@ class CompassViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        stopSensor()
+        unregister()
     }
 }

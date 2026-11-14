@@ -42,6 +42,7 @@ data class LatLon(val lat: Double, val lon: Double)
  * @param center       Current WGS-84 center of the viewport.
  * @param zoom         Zoom level (8f..19f).
  * @param rotationDeg  Canvas rotation in degrees (0 = north-up).
+ * @param headingDeg   Where the wearer is looking (0 = north, clockwise); null = no cone yet.
  * @param route        Optional computed route (drawn in [TargetLineMode.ROUTE]).
  * @param target       Active target; always marked, connected per [lineMode].
  * @param lineMode     Air line, route, or marker only.
@@ -54,6 +55,7 @@ fun MapCanvas(
     zoom: Float,
     mapsVersion: Int,
     rotationDeg: Float,
+    headingDeg: Float?,
     route: ComputedRoute?,
     target: Waypoint?,
     lineMode: TargetLineMode,
@@ -81,6 +83,22 @@ fun MapCanvas(
                 }
                 drawTargetMarker(Offset(tx, ty), accentColor)
             }
+        }
+
+        // View-direction cone (un-rotated): the map is rotated clockwise by rotationDeg, so a
+        // heading of h points at h + rotationDeg clockwise from the top of the screen.
+        if (headingDeg != null) {
+            val c = center(size)
+            val r = 64.dp.toPx()
+            val half = 28f
+            drawArc(
+                color = accentColor.copy(alpha = 0.32f),
+                startAngle = headingDeg + rotationDeg - 90f - half,
+                sweepAngle = 2 * half,
+                useCenter = true,
+                topLeft = Offset(c.x - r, c.y - r),
+                size = Size(2 * r, 2 * r),
+            )
         }
 
         // Always draw position dot on top (un-rotated), with a dark halo so it

@@ -61,6 +61,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.FocusRequester
 import timber.log.Timber
 import com.askew137.gcwatch.wear.WearApplication
+import com.askew137.gcwatch.wear.ui.UiPrefs
 import java.io.File
 
 /**
@@ -93,6 +94,17 @@ fun MapScreen(
     val rotationDeg by mapViewModel.mapRotationDeg.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // Live view direction (cone): the sensor runs only while this screen is shown and awake
+    // (in ambient mode the whole map is gone, so nothing is registered).
+    val azimuth by compassViewModel.azimuthDeg.collectAsStateWithLifecycle()
+    val hasHeading by compassViewModel.hasHeading.collectAsStateWithLifecycle()
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        compassViewModel.startSensor(context)
+        onDispose { compassViewModel.stopSensor() }
+    }
+    var reaction by remember { mutableStateOf(UiPrefs.reaction(context)) }
+    var ambientGpsSeconds by remember { mutableStateOf(UiPrefs.ambientGpsSeconds(context)) }
 
     // ROUTE without a route (e.g. cleared) falls back to the air line.
     val effectiveLineMode =
@@ -177,6 +189,7 @@ fun MapScreen(
             zoom = zoom,
             mapsVersion = mapsVersion,
             rotationDeg = rotationDeg,
+            headingDeg = if (hasHeading) azimuth else null,
             route = route,
             target = activeTarget,
             lineMode = effectiveLineMode,
@@ -282,6 +295,16 @@ fun MapScreen(
                     gnssRepository.switchSource(it)
                     // Remember the user's choice (a temporary fallback to the watch GPS does not).
                     onConfigChange(config.copy(gpsSource = it))
+                },
+                reaction = reaction,
+                onReactionChange = {
+                    reaction = it
+                    compassViewModel.setReaction(it)
+                },
+                ambientGpsSeconds = ambientGpsSeconds,
+                onAmbientGpsSecondsChange = {
+                    ambientGpsSeconds = it
+                    UiPrefs.setAmbientGpsSeconds(context, it)
                 },
                 onMapSelectionChange = { maps, auto ->
                     // Turning "automatic" off with nothing selected would leave the map blank.
