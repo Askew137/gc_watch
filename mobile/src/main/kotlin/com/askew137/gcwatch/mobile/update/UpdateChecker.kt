@@ -31,10 +31,18 @@ object UpdateChecker {
      * @param currentVersion Semantic version string of the installed app, e.g. "1.0.0".
      * @return [UpdateInfo] if a newer release exists, or `null` if up to date / network error.
      */
-    suspend fun checkForUpdate(currentVersion: String): UpdateInfo? {
-        val info = fetch(RELEASES_URL) ?: return null
+    suspend fun checkForUpdate(currentVersion: String): UpdateInfo? =
+        (check(currentVersion) as? CheckResult.Newer)?.info
+
+    /** Like [checkForUpdate], but tells "up to date" apart from "could not reach the server". */
+    suspend fun check(currentVersion: String): CheckResult {
+        val info = fetch(RELEASES_URL) ?: return CheckResult.Failed
         Timber.d("Latest GitHub release: ${info.version} (installed: $currentVersion)")
-        return info.takeIf { isNewerVersion(remote = it.version, current = currentVersion) }
+        return if (isNewerVersion(remote = info.version, current = currentVersion)) {
+            CheckResult.Newer(info)
+        } else {
+            CheckResult.UpToDate(latestVersion = info.version)
+        }
     }
 
     /**
@@ -110,4 +118,11 @@ data class UpdateInfo(
     val wearApkUrl: String? = null,
 ) {
     val canUpdateInApp: Boolean get() = mobileApkUrl != null && wearApkUrl != null
+}
+
+sealed interface CheckResult {
+    data class Newer(val info: UpdateInfo) : CheckResult
+    /** [latestVersion] is the newest *released* (non pre-release) version on GitHub. */
+    data class UpToDate(val latestVersion: String) : CheckResult
+    data object Failed : CheckResult
 }

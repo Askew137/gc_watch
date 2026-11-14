@@ -55,6 +55,7 @@ fun HomeScreen(
     onNavigateSettings: () -> Unit,
 ) {
     val connectedNode by viewModel.connectedNodeName.collectAsState()
+    val watchSearching by viewModel.watchSearching.collectAsState()
     val updateInfo by viewModel.updateInfo.collectAsState()
     val updateInProgress by viewModel.updateCheckInProgress.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
@@ -64,6 +65,7 @@ fun HomeScreen(
         viewModel.refreshWatchVersion()
     }
     val toastContext = LocalContext.current
+    val checkMessage by viewModel.checkMessage.collectAsState()
     // A failed update must be noticeable, not just a small line inside a card.
     androidx.compose.runtime.LaunchedEffect(updateState) {
         (updateState as? AppUpdater.State.Failed)?.let {
@@ -130,7 +132,11 @@ fun HomeScreen(
                     )
                     Column {
                         Text(
-                            text = if (connectedNode != null) "Watch connected" else "No watch connected",
+                            text = when {
+                                connectedNode != null -> "Watch connected"
+                                watchSearching -> "Looking for the watch…"
+                                else -> "No watch connected"
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -268,11 +274,7 @@ fun HomeScreen(
             // ── Update check ─────────────────────────────────────────────────
             Button(
                 onClick = {
-                    viewModel.checkForUpdate()
-                    scope.launch {
-                        // The result will appear via updateInfo state;
-                        // show feedback only when no update is found.
-                    }
+                    viewModel.checkForUpdate(manual = true)
                 },
                 enabled = !updateInProgress,
                 modifier = Modifier.fillMaxWidth(),
@@ -287,6 +289,15 @@ fun HomeScreen(
                     )
                 }
                 Text(if (updateInProgress) "Checking…" else "Check for update")
+            }
+
+            // Result of a manual check that found nothing new (stays until the next check).
+            checkMessage?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             // Show update result when available.

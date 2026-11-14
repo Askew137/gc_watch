@@ -50,6 +50,10 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
     private val _connectedNodeName = MutableStateFlow<String?>(null)
     val connectedNodeName: StateFlow<String?> = _connectedNodeName.asStateFlow()
 
+    private val _watchSearching = MutableStateFlow(true)
+    /** True until the first node query finished, so the card does not claim "no watch" while still looking. */
+    val watchSearching: StateFlow<Boolean> = _watchSearching.asStateFlow()
+
     // ── Map files ─────────────────────────────────────────────────────────────
 
     private val _mapFiles = MutableStateFlow<List<File>>(emptyList())
@@ -165,15 +169,32 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
 
     fun startUpdate(info: com.askew137.gcwatch.mobile.update.UpdateInfo) = AppUpdater.start(app, info)
 
-    fun checkForUpdate() {
+    private val _checkMessage = MutableStateFlow<String?>(null)
+    /** Result of a check the user asked for ("up to date" / "no connection"); stays until the next manual check. */
+    val checkMessage: StateFlow<String?> = _checkMessage.asStateFlow()
+
+    /** [manual]: the user tapped the button, so say something even when there is nothing new. */
+    fun checkForUpdate(manual: Boolean = false) {
         if (_updateCheckInProgress.value) return
+        if (manual) _checkMessage.value = null
         viewModelScope.launch {
             _updateCheckInProgress.value = true
             try {
                 val versionName = app.packageManager
                     .getPackageInfo(app.packageName, 0)
                     .versionName ?: "1.0.0"
-                _updateInfo.value = UpdateChecker.checkForUpdate(versionName)
+                when (val result = UpdateChecker.check(versionName)) {
+                    is com.askew137.gcwatch.mobile.update.CheckResult.Newer -> _updateInfo.value = result.info
+                    is com.askew137.gcwatch.mobile.update.CheckResult.UpToDate -> {
+                        _updateInfo.value = null
+                        if (manual) _checkMessage.value =
+                            "Up to date: this is $versionName, the newest released version is ${result.latestVersion}. " +
+                                "(Pre-releases are not offered.)"
+                    }
+                    com.askew137.gcwatch.mobile.update.CheckResult.Failed -> {
+                        if (manual) _checkMessage.value = "Could not reach the update server. Check the connection."
+                    }
+                }
             } finally {
                 _updateCheckInProgress.value = false
             }
@@ -200,6 +221,8 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
             } catch (e: Exception) {
                 Timber.w(e, "Could not query connected nodes")
                 _connectedNodeName.value = null
+            } finally {
+                _watchSearching.value = false
             }
         }
     }
