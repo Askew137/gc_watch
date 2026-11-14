@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,7 +21,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -80,15 +80,6 @@ fun MapsScreen(
                 ),
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { mapPicker.launch(arrayOf("*/*")) },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add map file") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            )
-        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -104,11 +95,21 @@ fun MapsScreen(
             SectionHeader("Map files (.map)")
 
             if (mapFiles.isEmpty()) {
-                EmptyHint("No .map files yet. Tap '+' to add one.")
+                EmptyHint("No .map files yet. Add one below.")
             } else {
                 mapFiles.forEach { file ->
                     MapFileCard(file = file, onSendToWatch = { viewModel.sendMapToWatch(file) })
                 }
+            }
+
+            // Adding a map is part of this section (a floating button used to cover the list).
+            Button(
+                onClick = { mapPicker.launch(arrayOf("*/*")) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Add map file")
             }
 
             // Copy progress
@@ -155,7 +156,7 @@ fun MapsScreen(
             // ── Routing data ───────────────────────────────────────────────────
             RoutingDataSection(viewModel)
 
-            Spacer(modifier = Modifier.height(80.dp)) // FAB clearance
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
