@@ -196,7 +196,7 @@ fun MapScreen(
         MapCanvas(
             engine = mapEngine,
             center = viewCenter,
-            me = center,
+            me = location?.let { LatLon(it.lat, it.lon) },
             zoom = zoom,
             mapsVersion = mapsVersion,
             rotationDeg = rotationDeg,
@@ -282,6 +282,22 @@ fun MapScreen(
             icon = { Icon(Icons.Rounded.MyLocation, contentDescription = "Vycentrovat, sever nahoře", modifier = Modifier.size(20.dp), tint = if (panCenter != null) Color.White else accentColor) },
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp).offset(y = 22.dp),
         )
+
+        // No GPS fix yet: say so (otherwise the route silently never appears: it is only
+        // requested from the phone once there is a fix).
+        if (location == null) {
+            Text(
+                text = if (activeTarget != null) "Čekám na GPS…\ntrasa se spočítá po prvním fixu" else "Čekám na GPS…",
+                fontSize = 11.sp,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .offset(y = 52.dp)
+                    .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+        }
 
         lineHint?.let { hint ->
             Text(

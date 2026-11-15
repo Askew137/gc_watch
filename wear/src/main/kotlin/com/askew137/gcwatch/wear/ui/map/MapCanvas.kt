@@ -40,7 +40,7 @@ data class LatLon(val lat: Double, val lon: Double)
  *
  * @param engine       The [MapEngineService] used to render tiles.
  * @param center       Current WGS-84 center of the viewport.
- * @param me           Position of the wearer (dot and view cone); defaults to the viewport centre.
+ * @param me           Position of the wearer (dot, view cone, start of the air line); null = unknown.
  * @param zoom         Zoom level (8f..19f).
  * @param rotationDeg  Canvas rotation in degrees (0 = north-up).
  * @param headingDeg   Where the wearer is looking (0 = north, clockwise); null = no cone yet.
@@ -53,8 +53,12 @@ data class LatLon(val lat: Double, val lon: Double)
 fun MapCanvas(
     engine: MapEngineService,
     center: LatLon,
-    /** Where the wearer is; drawn there even when the view is panned away from it. Null = at the view centre. */
-    me: LatLon? = null,
+    /**
+     * Where the wearer is; the dot, cone and air line sit there even when the view is panned away
+     * from it. Null = no GPS fix yet: nothing of that is drawn (the map is then centred on the target
+     * or the map, which must not look like "I am here").
+     */
+    me: LatLon?,
     zoom: Float,
     mapsVersion: Int,
     rotationDeg: Float,
@@ -72,6 +76,12 @@ fun MapCanvas(
         val canvasW = size.width
         val canvasH = size.height
 
+        // The wearer in the (un-rotated) map frame; null without a GPS fix.
+        val meMap = me?.let {
+            val (mx, my) = latLonToCanvas(it.lat, it.lon, center, zoomByte.toInt(), canvasW, canvasH)
+            Offset(mx, my)
+        }
+
         withTransform(
             transformBlock = { rotate(degrees = rotationDeg, pivot = center(size)) }
         ) {
@@ -81,8 +91,8 @@ fun MapCanvas(
                 when {
                     lineMode == TargetLineMode.ROUTE && route != null ->
                         drawRoute(route, center, zoomByte, canvasW, canvasH, accentColor)
-                    lineMode != TargetLineMode.OFF ->
-                        drawAirLine(from = center(size), to = Offset(tx, ty), accentColor = accentColor)
+                    lineMode != TargetLineMode.OFF && meMap != null ->
+                        drawAirLine(from = meMap, to = Offset(tx, ty), accentColor = accentColor)
                 }
                 drawTargetMarker(Offset(tx, ty), accentColor)
             }
@@ -90,11 +100,9 @@ fun MapCanvas(
 
         // View-direction cone (un-rotated): the map is rotated clockwise by rotationDeg, so a
         // heading of h points at h + rotationDeg clockwise from the top of the screen.
-        // The wearer's position on screen: the centre while following, elsewhere when panned.
-        val mePos = if (me == null) center(size) else {
-            val (mx, my) = latLonToCanvas(me.lat, me.lon, center, zoomByte.toInt(), canvasW, canvasH)
-            rotatePoint(Offset(mx, my), center(size), rotationDeg)
-        }
+        // The wearer's position on screen (rotated like the map); nothing is drawn without a fix.
+        val mePos = meMap?.let { rotatePoint(it, center(size), rotationDeg) }
+        if (mePos == null) return@Canvas
         if (headingDeg != null) {
             val c = mePos
             val r = 50.dp.toPx()
