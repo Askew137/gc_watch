@@ -6,6 +6,11 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Required for ambient mode (the app stays up, dimmed, while the screen is "off") -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Foreground service of type "location": keeps the GPS and the app alive with the screen off -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- The notification of that service (Android 13+ asks the user) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- A short buzz when a target arrives from the phone while the app is closed -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
@@ -31,6 +36,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".navigation.NavigationService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <service
             android:name=".navigation.WearMessageService"

@@ -18,6 +18,11 @@ class WearApplication : Application() {
     val navigationRepository: NavigationRepository by lazy { NavigationRepository(this) }
     val configRepository: ConfigRepository by lazy { ConfigRepository(this) }
 
+    /** One GPS for the whole process (UI and the navigation service share it). */
+    val gnssRepository: com.askew137.gcwatch.wear.gnss.GnssRepository by lazy {
+        com.askew137.gcwatch.wear.gnss.GnssRepository(this)
+    }
+
     /** A newer watch APK that the phone sent; the UI offers to install it. */
     val pendingUpdate = MutableStateFlow<File?>(null)
 

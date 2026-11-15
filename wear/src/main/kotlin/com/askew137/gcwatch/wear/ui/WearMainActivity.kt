@@ -1,6 +1,11 @@
 package com.askew137.gcwatch.wear.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -8,7 +13,9 @@ import androidx.wear.ambient.AmbientLifecycleObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.askew137.gcwatch.wear.WearApplication
 import com.askew137.gcwatch.wear.gnss.GnssRepository
+import com.askew137.gcwatch.wear.navigation.NavigationService
 import com.askew137.gcwatch.wear.map.AutoMapSelector
 import com.askew137.gcwatch.wear.map.MapEngineService
 import com.askew137.gcwatch.wear.ui.compass.CompassViewModel
@@ -37,6 +44,41 @@ class WearMainActivity : ComponentActivity() {
         }
     }
 
+    /** Location (needed for the GPS and for the foreground service) and, on Android 13+, notifications. */
+    private val permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            gnssRepository.onPermissionChanged()
+            startNavigationServiceIfAllowed()
+        }
+
+    private fun hasLocationPermission() = ContextCompat.checkSelfPermission(
+        this, Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+
+    private fun requestMissingPermissions() {
+        val missing = buildList {
+            if (!hasLocationPermission()) {
+                add(Manifest.permission.ACCESS_FINE_LOCATION)
+                add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            }
+            if (Build.VERSION.SDK_INT >= 33 &&
+                ContextCompat.checkSelfPermission(this@WearMainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (missing.isNotEmpty()) permissionLauncher.launch(missing.toTypedArray())
+    }
+
+    /** The service needs the location permission and a visible app at the moment it starts (Android 14). */
+    private fun startNavigationServiceIfAllowed() {
+        if (!hasLocationPermission()) return
+        try {
+            NavigationService.start(this)
+        } catch (e: Exception) {
+            // Not fatal: without the service the app still works while the screen is on.
+            Timber.w(e, "WearMainActivity: could not start the navigation service")
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -45,10 +87,11 @@ class WearMainActivity : ComponentActivity() {
         lifecycle.addObserver(AmbientLifecycleObserver(this, ambientCallback))
 
         mapEngine = MapEngineService(applicationContext)
-        gnssRepository = GnssRepository(applicationContext)
+        gnssRepository = (application as WearApplication).gnssRepository
         autoMapSelector = AutoMapSelector(applicationContext)
 
         Timber.d("WearMainActivity: onCreate")
+        requestMissingPermissions()
 
         setContent {
             val configViewModel: ConfigViewModel = viewModel()
@@ -71,8 +114,25 @@ class WearMainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        gnssRepository.setUiVisible(true)
+        gnssRepository.setActive("ui", true)
+        startNavigationServiceIfAllowed()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Screen off or another app on top: the GPS keeps running only if the service holds it.
+        gnssRepository.setUiVisible(false)
+        gnssRepository.setActive("ui", false)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        // Closed on purpose (swipe away, "Ukončit"): stop the service too. A destroy by the system
+        // while in the background (isFinishing == false) leaves it running.
+        if (isFinishing) NavigationService.stop(this)
         mapEngine.destroy()
         Timber.d("WearMainActivity: onDestroy")
     }

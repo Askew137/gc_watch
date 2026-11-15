@@ -331,6 +331,14 @@ private fun OstatniTab(
             valueRange = minS.toFloat()..maxS.toFloat(),
             steps = (maxS - minS) / stepS - 1,
         )
+        Spacer(Modifier.height(8.dp))
+        val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+        Chip(
+            onClick = { activity?.finish() },
+            label = { Text("Ukončit aplikaci", fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+            colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.height(10.dp))
         Text(
             "GC Watch v${com.askew137.gcwatch.wear.BuildConfig.VERSION_NAME} (${com.askew137.gcwatch.wear.BuildConfig.VERSION_CODE})",
