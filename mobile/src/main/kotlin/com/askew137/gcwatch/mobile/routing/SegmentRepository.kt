@@ -54,6 +54,10 @@ object SegmentRepository {
     private val _remoteSizes = MutableStateFlow<Map<String, Long>>(emptyMap())
     val remoteSizes: StateFlow<Map<String, Long>> = _remoteSizes.asStateFlow()
 
+    private val _unavailable = MutableStateFlow<Set<String>>(emptySet())
+    /** Tiles the server answered 404 for: BRouter has no data there (sea, or not covered). */
+    val unavailable: StateFlow<Set<String>> = _unavailable.asStateFlow()
+
     private val tileRegex = Regex("""^[EW]\d{1,3}_[NS]\d{1,2}$""")
 
     /** The tile name comes from engine output and ends up in a URL and a file name: validate. */
@@ -99,6 +103,7 @@ object SegmentRepository {
             if (!isValidTile(tile) || tile in sizes) continue
             try {
                 client.newCall(Request.Builder().url(url(tile)).head().build()).execute().use { r ->
+                    if (r.code == 404) _unavailable.value = _unavailable.value + tile
                     r.header("Content-Length")?.toLongOrNull()?.let { sizes[tile] = it }
                 }
             } catch (e: Exception) {

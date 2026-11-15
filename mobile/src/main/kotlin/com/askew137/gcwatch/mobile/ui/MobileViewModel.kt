@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
@@ -69,6 +70,7 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
 
     val segmentDownload = SegmentRepository.download
     val segmentDownloadError = SegmentRepository.downloadError
+    val segmentUnavailable = SegmentRepository.unavailable
     val missingSegment = SegmentRepository.missingTile
     val segmentRemoteSizes = SegmentRepository.remoteSizes
 
@@ -144,6 +146,30 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteSegment(tile: String) {
         SegmentRepository.delete(app, tile)
         refreshSegments()
+    }
+
+    private val _tilesQueued = MutableStateFlow(0)
+    /** Tiles still waiting after the one being downloaded (the "download routing for this map" button queues several). */
+    val tilesQueued: StateFlow<Int> = _tilesQueued.asStateFlow()
+    private var tileQueue: kotlinx.coroutines.Job? = null
+
+    /** Downloads the tiles one after another (the download service handles one at a time); stops at the first failure. */
+    fun downloadSegments(tiles: List<String>) {
+        tileQueue?.cancel()
+        tileQueue = viewModelScope.launch {
+            val todo = tiles.filter { !SegmentRepository.isInstalled(app, it) }
+            todo.forEachIndexed { i, tile ->
+                _tilesQueued.value = todo.size - i - 1
+                SegmentRepository.download.first { it == null }
+                downloadSegment(tile)
+                // The service reports the start asynchronously; then wait for its end.
+                kotlinx.coroutines.withTimeoutOrNull(30_000) { SegmentRepository.download.first { it != null } }
+                SegmentRepository.download.first { it == null }
+                refreshSegments()
+                if (!SegmentRepository.isInstalled(app, tile)) { _tilesQueued.value = 0; return@launch }
+            }
+            _tilesQueued.value = 0
+        }
     }
 
     /** Also fetches the size of a tile the engine asked for that is not in the known list. */

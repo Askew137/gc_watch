@@ -34,4 +34,21 @@ object TileNames {
         val lon = m.groupValues[2].replace(',', '.').toDoubleOrNull() ?: return null
         return tileFor(lat, lon)
     }
+
+    /**
+     * All tiles that a map with this bounding box touches, south-west to north-east. A box that ends exactly
+     * on a tile border does not pull in the next tile.
+     */
+    fun tilesCovering(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double): List<String> {
+        val eps = 1e-6
+        val la0 = floor(minLat / 5).toInt()
+        val la1 = floor((maxLat - eps).coerceAtLeast(minLat) / 5).toInt()
+        val lo0 = floor(minLon / 5).toInt()
+        val lo1 = floor((maxLon - eps).coerceAtLeast(minLon) / 5).toInt()
+        val out = ArrayList<String>()
+        for (la in la0..la1) for (lo in lo0..lo1) {
+            tileFor((la * 5).toDouble(), (lo * 5).toDouble())?.let { out += it }
+        }
+        return out
+    }
 }

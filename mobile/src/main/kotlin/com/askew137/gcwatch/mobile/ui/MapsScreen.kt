@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.askew137.gcwatch.mobile.routing.SegmentRepository
 import com.askew137.gcwatch.mobile.routing.TileNames
+import com.askew137.gcwatch.mobile.maps.MapBounds
 import java.io.File
 import java.text.DecimalFormat
 
@@ -65,6 +67,13 @@ fun MapsScreen(
     val transfer by viewModel.mapTransfer.collectAsState()
     var fileToDelete by remember { mutableStateOf<File?>(null) }
     val sending = transfer is MapTransferState.Working
+    val installedSegs by viewModel.installedSegments.collectAsState()
+    val segDownload by viewModel.segmentDownload.collectAsState()
+    val queued by viewModel.tilesQueued.collectAsState()
+    val remoteSizes by viewModel.segmentRemoteSizes.collectAsState()
+    val unavailableTiles by viewModel.segmentUnavailable.collectAsState()
+    val dlError by viewModel.segmentDownloadError.collectAsState()
+    val installedTiles = installedSegs.map { it.name.removeSuffix(".rd5") }.toSet()
 
     // SAF pickers
     val mapPicker = rememberLauncherForActivityResult(
@@ -130,6 +139,19 @@ fun MapsScreen(
                         sendEnabled = !sending,
                         onSendToWatch = { viewModel.sendMapToWatch(file) },
                         onRemove = { fileToDelete = file },
+                        routing = {
+                            RoutingForMap(
+                                file = file,
+                                installedTiles = installedTiles,
+                                sizes = remoteSizes,
+                                unavailable = unavailableTiles,
+                                error = dlError,
+                                downloading = segDownload?.tile,
+                                queued = queued,
+                                onNeedSizes = { tiles -> tiles.forEach { viewModel.fetchSegmentSize(it) } },
+                                onDownload = { tiles -> viewModel.downloadSegments(tiles) },
+                            )
+                        },
                     )
                 }
             }
@@ -225,7 +247,7 @@ private fun EmptyHint(text: String) {
 }
 
 @Composable
-private fun MapFileCard(file: File, sendEnabled: Boolean, onSendToWatch: () -> Unit, onRemove: () -> Unit) {
+private fun MapFileCard(file: File, sendEnabled: Boolean, onSendToWatch: () -> Unit, onRemove: () -> Unit, routing: @Composable () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier.fillMaxWidth(),
@@ -265,6 +287,63 @@ private fun MapFileCard(file: File, sendEnabled: Boolean, onSendToWatch: () -> U
                 TextButton(onClick = onRemove) {
                     Text("Remove from phone", color = MaterialTheme.colorScheme.error)
                 }
+            }
+        }
+        Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) { routing() }
+    }
+}
+
+/** What routing data this map needs, and a one-tap download of what is missing. */
+@Composable
+private fun RoutingForMap(
+    file: File,
+    installedTiles: Set<String>,
+    sizes: Map<String, Long>,
+    unavailable: Set<String>,
+    error: String?,
+    downloading: String?,
+    queued: Int,
+    onNeedSizes: (List<String>) -> Unit,
+    onDownload: (List<String>) -> Unit,
+) {
+    val tiles = remember(file.path, file.length()) {
+        MapBounds.read(file)?.let { TileNames.tilesCovering(it.minLat, it.minLon, it.maxLat, it.maxLon) }
+    } ?: return
+    // Tiles the server does not have (sea, uncovered land) cannot be downloaded and are not needed.
+    val missing = tiles.filter { it !in installedTiles && it !in unavailable }
+    LaunchedEffect(tiles, installedTiles) { onNeedSizes(tiles.filter { it !in installedTiles }) }
+
+    if (missing.isEmpty()) {
+        val have = tiles.filter { it in installedTiles }
+        Text(
+            if (have.isNotEmpty()) "Routes: ready (${have.joinToString(", ")})"
+            else "Routes: no routing data exists for this area (sea or not covered)",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (have.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    val total = missing.mapNotNull { sizes[it] }.sum()
+    val allKnown = missing.all { it in sizes }
+    val busy = downloading != null || queued > 0
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            "Routes need ${missing.size} data " + (if (missing.size == 1) "tile" else "tiles") +
+                " (${missing.joinToString(", ")})" + if (allKnown && total > 0) ", ${formatFileSize(total)}" else "",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (busy && downloading in missing) {
+            Text(
+                "Downloading $downloading…" + if (queued > 0) " ($queued more waiting)" else "",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else {
+            OutlinedButton(onClick = { onDownload(missing) }, enabled = !busy) {
+                Text("Download routing data" + if (allKnown && total > 0) " (${formatFileSize(total)})" else "")
+            }
+            if (error != null && missing.any { error.contains(it) }) {
+                Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
         }
     }
