@@ -3,6 +3,8 @@
 
     <!-- Networking for update check -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- To find the phone's Wi-Fi address for the local map download to the watch -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Location for displaying user position on maps screen -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

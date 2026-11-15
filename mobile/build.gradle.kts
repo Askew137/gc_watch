@@ -20,6 +20,10 @@ android {
         versionCode = providers.gradleProperty("gcwatch.versionCode").get().toInt()
         versionName = providers.gradleProperty("gcwatch.versionName").get()
 
+        // Test hook for emulators (no shared LAN): "10.0.2.2:7777" advertises that address and listens on that
+        // port, to be forwarded with `adb -s <phone> forward tcp:7777 tcp:7777`. Empty = real Wi-Fi address.
+        buildConfigField("String", "LAN_TEST_HOST", "\"" + (providers.gradleProperty("gcwatch.lanTestHost").orNull ?: "") + "\"")
+
         // Where the updater looks for the latest release; overridable for local testing
         // (-Pgcwatch.updateUrl=http://10.0.2.2:8000/latest.json).
         buildConfigField(

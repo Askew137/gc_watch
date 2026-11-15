@@ -47,6 +47,8 @@ sealed interface MapTransferState {
         val sentBytes: Long = 0,
         val totalBytes: Long = 0,
         val bytesPerSec: Long = 0,
+        /** How the file travels: "Wi-Fi" (direct, fast) or "Bluetooth link" (the slow Data Layer channel). */
+        val mode: String = "",
     ) : MapTransferState {
         val percent: Int get() = if (totalBytes > 0) (sentBytes * 100 / totalBytes).toInt().coerceIn(0, 100) else 0
 
@@ -153,7 +155,13 @@ class MapTransferService : Service() {
         val start = if (offset in 1 until total) offset else 0L
         Timber.i("Sending %s: %d of %d bytes are already on the watch", name, start, total)
 
-        // 2. Stream the rest.
+        // 2a. Fast path: the watch downloads the rest from the phone over the local Wi-Fi.
+        val lan = if (com.askew137.gcwatch.mobile.BuildConfig.LAN_TEST_HOST.isNotEmpty()) "test" else lanAddress()
+        if (lan != null && viaWifi(file, total, start, node.id, lan)) return
+        mode = "Bluetooth link"
+        Timber.i("Wi-Fi download not possible (%s): using the Data Layer channel", if (lan == null) "no Wi-Fi on the phone" else "the watch could not reach the phone")
+
+        // 2b. Slow path: stream through the Data Layer channel.
         val stored = CompletableDeferred<String>().also { pendingStored = it }
         val channelClient = Wearable.getChannelClient(this)
         val channel = withTimeout(20_000) {
@@ -175,6 +183,86 @@ class MapTransferService : Service() {
         } finally {
             pendingStored = null
             runCatching { withContext(NonCancellable) { withTimeout(2_000) { channelClient.close(channel).await() } } }
+        }
+    }
+
+    /** The phone's IPv4 address on Wi-Fi, or null when it is not on Wi-Fi. */
+    private fun lanAddress(): String? {
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return null
+        for (network in cm.allNetworks) {
+            val caps = cm.getNetworkCapabilities(network) ?: continue
+            if (!caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)) continue
+            val addr = cm.getLinkProperties(network)?.linkAddresses
+                ?.map { it.address }
+                ?.firstOrNull { it is java.net.Inet4Address && !it.isLoopbackAddress }
+            if (addr != null) return addr.hostAddress
+        }
+        return null
+    }
+
+    /**
+     * Offers the file to the watch as a local HTTP download. Returns true when this path has decided the
+     * outcome (done or failed, state already set), false when the watch could not reach the phone so the
+     * caller should fall back to the channel.
+     */
+    private suspend fun viaWifi(file: File, total: Long, start: Long, nodeId: String, lan: String): Boolean {
+        val name = file.name
+        val token = (1..16).map { "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789".random() }.joinToString("")
+        val server = MapHttpServer(file, token)
+        val stored = CompletableDeferred<String>().also { pendingStored = it }
+        mode = "Wi-Fi"
+        try {
+            val testHost = com.askew137.gcwatch.mobile.BuildConfig.LAN_TEST_HOST
+            val port = server.start(testHost.substringAfter(':', "0").toIntOrNull() ?: 0)
+            val host = if (testHost.isNotEmpty()) testHost.substringBefore(':') else lan
+            val encoded = java.net.URLEncoder.encode(name, "UTF-8").replace("+", "%20")
+            val url = "http://$host:$port/$token/$encoded"
+            Wearable.getMessageClient(this).sendMessage(
+                nodeId, MapTransferProtocol.HTTP_OFFER, MapTransferProtocol.encode(name, total, start, url),
+            ).await()
+            setWorking(name, MapTransferState.Phase.SENDING, start, total, 0)
+
+            val began = SystemClock.elapsedRealtime()
+            var windowAt = began
+            var windowBytes = server.servedUpTo.get().coerceAtLeast(start)
+            var speed = 0L
+            while (!stored.isCompleted) {
+                delay(500)
+                val now = SystemClock.elapsedRealtime()
+                if (!server.contacted && now - began > WIFI_CONNECT_MS) return false // the watch cannot reach us
+                val served = server.servedUpTo.get().coerceAtLeast(start)
+                if (now - windowAt >= 2_000) {
+                    speed = (served - windowBytes) * 1000 / (now - windowAt)
+                    windowAt = now
+                    windowBytes = served
+                }
+                if (served >= total) {
+                    setWorking(name, MapTransferState.Phase.CONFIRMING, total, total, 0)
+                } else {
+                    setWorking(name, MapTransferState.Phase.SENDING, served, total, speed)
+                    notify(name, (served * 100 / total).toInt(), "Sending map to the watch")
+                    val idle = System.nanoTime() / 1_000_000 - server.lastActivityMs.get()
+                    if (server.contacted && idle > STALL_MS) {
+                        fail(name, "No data moved for ${STALL_MS / 1000} s over Wi-Fi. Make sure the watch is on the same Wi-Fi and awake, then tap Retry (it resumes).")
+                        return true
+                    }
+                }
+                if (now - began > WIFI_CONFIRM_MAX_MS) break
+            }
+            return when (val result = withTimeoutOrNull(CONFIRM_TIMEOUT_MS) { stored.await() }) {
+                "ok" -> {
+                    Timber.i("Map transfer complete over Wi-Fi: %s", name)
+                    _state.value = MapTransferState.Done(name, total)
+                    finishNotification(name, "Map sent to the watch")
+                    true
+                }
+                "unreachable" -> false
+                null -> { fail(name, "The watch did not confirm the file. Open GC Watch on the watch and tap Retry (it resumes)."); true }
+                else -> { fail(name, "The file did not arrive completely. Tap Retry: it resumes where it stopped."); true }
+            }
+        } finally {
+            server.stop()
+            pendingStored = null
         }
     }
 
@@ -269,8 +357,10 @@ class MapTransferService : Service() {
         finishNotification(name, "Map transfer failed")
     }
 
+    private var mode = ""
+
     private fun setWorking(name: String, phase: MapTransferState.Phase, sent: Long, total: Long, speed: Long) {
-        _state.value = MapTransferState.Working(name, phase, sent, total, speed)
+        _state.value = MapTransferState.Working(name, phase, sent, total, speed, mode)
     }
 
     // ── Notification helpers ──────────────────────────────────────────────────
@@ -319,7 +409,9 @@ class MapTransferService : Service() {
         private const val BUFFER = 64 * 1024
         private const val UI_INTERVAL_MS = 300L
         private const val STALL_MS = 30_000L
-        private const val RESUME_ANSWER_TIMEOUT_MS = 10_000L
+        private const val RESUME_ANSWER_TIMEOUT_MS = 25_000L
+        private const val WIFI_CONNECT_MS = 20_000L
+        private const val WIFI_CONFIRM_MAX_MS = 6L * 3600 * 1000
         private const val CONFIRM_TIMEOUT_MS = 180_000L
 
         private val _state = MutableStateFlow<MapTransferState>(MapTransferState.Idle)

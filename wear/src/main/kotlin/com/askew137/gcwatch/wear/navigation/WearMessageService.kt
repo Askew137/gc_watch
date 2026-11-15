@@ -43,6 +43,7 @@ class WearMessageService : WearableListenerService() {
             MessagePaths.CONFIG_SYNC -> configRepo.onRemoteSync(event.data)
             MessagePaths.VERSION_REQUEST -> answerVersion(event.sourceNodeId)
             MapTransferProtocol.RESUME_QUERY -> mapReceiver.answerResumeQuery(event.data, event.sourceNodeId)
+            MapTransferProtocol.HTTP_OFFER -> mapReceiver.downloadHttp(event.data, event.sourceNodeId)
             else -> Timber.d("WearMessageService: unhandled path %s", event.path)
         }
     }

@@ -20,6 +20,14 @@ object MapTransferProtocol {
     const val RESUME_ANSWER = "/map_resume_answer"
     const val STORED = "/map_stored"
 
+    /**
+     * phone → watch, instead of opening the channel: `"<name>|<size>|<offset>|<url>"`. The watch downloads
+     * the rest from the phone over the local Wi-Fi (HTTP with a Range header) and answers with [STORED]
+     * (`ok`, `incomplete`, or `unreachable` when it could not even connect: the phone then falls back to the
+     * slow Data Layer channel). The channel only moves a few KB/s on many watches, in bursts.
+     */
+    const val HTTP_OFFER = "/map_http_offer"
+
     /** [RESUME_ANSWER] offset meaning "not enough free space on the watch". */
     const val NO_SPACE = -2L
 
@@ -43,6 +51,14 @@ object MapTransferProtocol {
     fun isSafeMapName(name: String): Boolean =
         name.endsWith(".map") && name.length > 4 &&
             '/' !in name && '\\' !in name && '|' !in name && ".." !in name
+
+    /** A private LAN address only: the watch must never be turned into a downloader for arbitrary hosts. */
+    fun isPrivateLanUrl(url: String): Boolean {
+        val m = Regex("""^http://(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3}):(\d{2,5})/[A-Za-z0-9_-]+/[^/?#]+$""").matchEntire(url) ?: return false
+        val o = m.groupValues.subList(1, 5).map { it.toInt() }
+        if (o.any { it > 255 }) return false
+        return o[0] == 10 || (o[0] == 172 && o[1] in 16..31) || (o[0] == 192 && o[1] == 168) || (o[0] == 169 && o[1] == 254)
+    }
 
     fun encode(vararg parts: Any): ByteArray = parts.joinToString("|").toByteArray(Charsets.UTF_8)
 

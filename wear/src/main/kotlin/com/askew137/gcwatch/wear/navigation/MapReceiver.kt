@@ -90,35 +90,7 @@ class MapReceiver(private val context: Context) {
             Timber.i("MapReceiver: receiving %s, %d of %d bytes already here", t.name, have, t.size)
 
             val input = Tasks.await(client.getInputStream(channel))
-            var total = have
-            input.use { src ->
-                FileOutputStream(part, /* append = */ have > 0).use { out ->
-                    val buf = ByteArray(BUFFER)
-                    while (true) {
-                        val n = src.read(buf)
-                        if (n == -1) break
-                        total += n
-                        if (total > t.size) throw IllegalStateException("more data than announced")
-                        out.write(buf, 0, n)
-                    }
-                    out.flush()
-                    out.fd.sync()
-                }
-            }
-
-            if (total == t.size) {
-                if (dest.exists()) dest.delete()
-                if (part.renameTo(dest)) {
-                    note.delete()
-                    outcome = "ok"
-                    (context.applicationContext as WearApplication).mapsRevision.value++
-                    Timber.i("MapReceiver: %s stored (%d bytes)", t.name, total)
-                } else {
-                    Timber.e("MapReceiver: could not move %s into place", t.name)
-                }
-            } else {
-                Timber.w("MapReceiver: stream ended after %d of %d bytes; keeping the part", total, t.size)
-            }
+            outcome = store(t.name, t.size, have, input)
         } catch (e: Exception) {
             // The partial file stays: the phone resumes from it.
             Timber.e(e, "MapReceiver: transfer of %s broke", t.name)
@@ -126,6 +98,113 @@ class MapReceiver(private val context: Context) {
             if (wakeLock.isHeld) wakeLock.release()
             send(channel.nodeId, MapTransferProtocol.STORED, MapTransferProtocol.encode(t.name, t.size, outcome))
             runCatching { Tasks.await(client.close(channel)) }
+        }
+    }
+
+    /**
+     * Appends [src] to `<name>.part` and, only if the file then has exactly [size] bytes, turns it into the
+     * map. Returns `ok` or `incomplete` (the part is kept for resuming).
+     */
+    private fun store(name: String, size: Long, have: Long, src: java.io.InputStream): String {
+        val part = partOf(name)
+        val dest = File(mapsDir, name)
+        var total = have
+        src.use { input ->
+            FileOutputStream(part, /* append = */ have > 0).use { out ->
+                val buf = ByteArray(BUFFER)
+                while (true) {
+                    val n = input.read(buf)
+                    if (n == -1) break
+                    total += n
+                    if (total > size) throw IllegalStateException("more data than announced")
+                    out.write(buf, 0, n)
+                }
+                out.flush()
+                out.fd.sync()
+            }
+        }
+        if (total != size) {
+            Timber.w("MapReceiver: stream ended after %d of %d bytes; keeping the part", total, size)
+            return "incomplete"
+        }
+        if (dest.exists()) dest.delete()
+        if (!part.renameTo(dest)) {
+            Timber.e("MapReceiver: could not move %s into place", name)
+            return "incomplete"
+        }
+        sizeNoteOf(name).delete()
+        (context.applicationContext as WearApplication).mapsRevision.value++
+        Timber.i("MapReceiver: %s stored (%d bytes)", name, total)
+        return "ok"
+    }
+
+    /**
+     * Phone → watch: download the rest of a map from the phone over the local Wi-Fi (see
+     * [MapTransferProtocol.HTTP_OFFER]). Blocks until done. The Data Layer channel moves only a few KB/s in bursts.
+     */
+    fun downloadHttp(payload: ByteArray, phoneNodeId: String) {
+        val p = String(payload, Charsets.UTF_8).split('|', limit = 4)
+        val name = p.getOrNull(0).orEmpty()
+        val size = p.getOrNull(1)?.toLongOrNull() ?: 0L
+        val offset = p.getOrNull(2)?.toLongOrNull() ?: -1L
+        val url = p.getOrNull(3).orEmpty()
+        if (!MapTransferProtocol.isSafeMapName(name) || size <= 0 || offset !in 0 until size || !MapTransferProtocol.isPrivateLanUrl(url)) {
+            Timber.w("MapReceiver: rejecting a malformed or non-LAN download offer")
+            return
+        }
+        val note = sizeNoteOf(name)
+        val wakeLock = (context.getSystemService(Context.POWER_SERVICE) as PowerManager)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "gcwatch:map-download")
+            .apply { acquire(WAKE_LOCK_MS) }
+        val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+        var callback: android.net.ConnectivityManager.NetworkCallback? = null
+        var outcome = "incomplete"
+        try {
+            val have = resumableBytes(name, size)
+            if (offset != have) {
+                Timber.w("MapReceiver: offset mismatch for %s (phone %d, watch %d)", name, offset, have)
+                return
+            }
+            // Wi-Fi may be idle: ask for it explicitly, and use exactly that network for the (LAN) address.
+            val latch = java.util.concurrent.CountDownLatch(1)
+            var wifi: android.net.Network? = null
+            callback = object : android.net.ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: android.net.Network) { wifi = network; latch.countDown() }
+            }
+            cm.requestNetwork(
+                android.net.NetworkRequest.Builder().addTransportType(android.net.NetworkCapabilities.TRANSPORT_WIFI).build(),
+                callback,
+            )
+            if (!latch.await(WIFI_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS) || wifi == null) {
+                Timber.w("MapReceiver: no Wi-Fi network for the download")
+                outcome = "unreachable"
+                return
+            }
+            note.writeText(size.toString())
+            val conn = try {
+                (wifi!!.openConnection(java.net.URL(url)) as java.net.HttpURLConnection).apply {
+                    connectTimeout = 8_000
+                    readTimeout = 20_000
+                    if (have > 0) setRequestProperty("Range", "bytes=$have-")
+                }.also { it.connect() }
+            } catch (e: java.io.IOException) {
+                Timber.w(e, "MapReceiver: cannot reach the phone at %s", url)
+                outcome = "unreachable"
+                return
+            }
+            val code = conn.responseCode
+            if (code != 200 && code != 206 || (have > 0 && code != 206)) {
+                Timber.w("MapReceiver: unexpected HTTP %d", code)
+                return
+            }
+            Timber.i("MapReceiver: downloading %s from the phone, %d of %d bytes already here", name, have, size)
+            outcome = store(name, size, have, conn.inputStream)
+        } catch (e: Exception) {
+            Timber.e(e, "MapReceiver: Wi-Fi download of %s broke", name)
+        } finally {
+            callback?.let { runCatching { cm.unregisterNetworkCallback(it) } }
+            if (wakeLock.isHeld) wakeLock.release()
+            send(phoneNodeId, MapTransferProtocol.STORED, MapTransferProtocol.encode(name, size, outcome))
         }
     }
 
@@ -149,6 +228,7 @@ class MapReceiver(private val context: Context) {
         const val BUFFER = 64 * 1024
         const val FREE_SPACE_MARGIN = 30L * 1024 * 1024
         const val WAKE_LOCK_MS = 30L * 60 * 1000
+        const val WIFI_WAIT_MS = 10_000L
         const val STALE_MS = 7L * 24 * 3600 * 1000
     }
 }

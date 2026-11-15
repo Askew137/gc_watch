@@ -40,4 +40,17 @@ class MapTransferProtocolTest {
         assertTrue(MapTransferProtocol.decode("garbage".toByteArray()) == null)
         assertEquals(MapTransferProtocol.NO_SPACE, MapTransferProtocol.decode(MapTransferProtocol.encode("a.map", MapTransferProtocol.NO_SPACE))!!.second)
     }
+
+    @Test
+    fun `only private LAN urls are accepted for the Wi-Fi download`() {
+        assertTrue(MapTransferProtocol.isPrivateLanUrl("http://192.168.1.20:41234/Ab3_x-9/Praha.map"))
+        assertTrue(MapTransferProtocol.isPrivateLanUrl("http://10.0.0.5:8080/tok/a%20b.map"))
+        assertTrue(MapTransferProtocol.isPrivateLanUrl("http://172.20.1.2:9000/tok/a.map"))
+        assertTrue(!MapTransferProtocol.isPrivateLanUrl("http://8.8.8.8:80/tok/a.map"))
+        assertTrue(!MapTransferProtocol.isPrivateLanUrl("http://172.32.0.1:80/tok/a.map"))
+        assertTrue(!MapTransferProtocol.isPrivateLanUrl("https://192.168.1.2:80/tok/a.map"))
+        assertTrue(!MapTransferProtocol.isPrivateLanUrl("http://example.com:80/tok/a.map"))
+        assertTrue(!MapTransferProtocol.isPrivateLanUrl("http://192.168.1.2:80/tok/../a.map"))
+        assertTrue(!MapTransferProtocol.isPrivateLanUrl("http://192.168.1.999:80/tok/a.map"))
+    }
 }

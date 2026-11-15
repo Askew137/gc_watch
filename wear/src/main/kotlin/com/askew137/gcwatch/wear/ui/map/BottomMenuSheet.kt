@@ -39,6 +39,8 @@ import androidx.wear.compose.material.SwipeToDismissBox
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Switch
+import androidx.compose.runtime.mutableStateOf
+import androidx.wear.compose.material.Checkbox
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.ToggleChip
 import androidx.wear.compose.material.ToggleChipDefaults
@@ -71,6 +73,7 @@ fun BottomMenuSheet(
     ambientGpsSeconds: Int,
     onAmbientGpsSecondsChange: (Int) -> Unit,
     onMapSelectionChange: (List<File>, Boolean) -> Unit,
+    onDeleteMaps: (List<File>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -122,6 +125,7 @@ fun BottomMenuSheet(
                     selectedMaps = selectedMaps,
                     automatic = automaticMapSelection,
                     onSelectionChange = onMapSelectionChange,
+                    onDelete = onDeleteMaps,
                 )
                 1 -> GivenThemeTab(
                     config = config,
@@ -151,7 +155,15 @@ private fun MapyTab(
     selectedMaps: List<File>,
     automatic: Boolean,
     onSelectionChange: (List<File>, Boolean) -> Unit,
+    onDelete: (List<File>) -> Unit,
 ) {
+    // Delete mode: the switches become checkboxes; "Smazat vybrané" asks once more before deleting.
+    var deleting by remember { mutableStateOf(false) }
+    var confirming by remember { mutableStateOf(false) }
+    var toDelete by remember { mutableStateOf(setOf<File>()) }
+    // A map that vanished (deleted elsewhere) must not stay ticked.
+    val ticked = toDelete.filter { it in availableMaps }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -169,24 +181,88 @@ private fun MapyTab(
         )
         Spacer(Modifier.height(4.dp))
         availableMaps.forEach { file ->
-            val isChecked = file in selectedMaps
-            ToggleChip(
-                checked = isChecked,
-                onCheckedChange = { checked ->
-                    val newSelection = if (checked) selectedMaps + file else selectedMaps - file
-                    onSelectionChange(newSelection, automatic)
-                },
-                label = { Text(file.name, fontSize = 11.sp, maxLines = 1) },
-                toggleControl = { Switch(checked = isChecked) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ToggleChipDefaults.toggleChipColors(
-                    checkedStartBackgroundColor = Color.Transparent,
-                    checkedEndBackgroundColor = Color.Transparent,
-                ),
-            )
+            if (deleting) {
+                val mark = file in toDelete
+                ToggleChip(
+                    checked = mark,
+                    onCheckedChange = {
+                        toDelete = if (it) toDelete + file else toDelete - file
+                        confirming = false
+                    },
+                    label = { Text(file.name, fontSize = 11.sp, maxLines = 1) },
+                    secondaryLabel = { Text(formatSize(file.length()), fontSize = 9.sp, color = Color.Gray) },
+                    toggleControl = { Checkbox(checked = mark) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ToggleChipDefaults.toggleChipColors(
+                        checkedStartBackgroundColor = Color(0xFF5A1010),
+                        checkedEndBackgroundColor = Color(0xFF5A1010),
+                    ),
+                )
+            } else {
+                val isChecked = file in selectedMaps
+                ToggleChip(
+                    checked = isChecked,
+                    onCheckedChange = { checked ->
+                        val newSelection = if (checked) selectedMaps + file else selectedMaps - file
+                        onSelectionChange(newSelection, automatic)
+                    },
+                    label = { Text(file.name, fontSize = 11.sp, maxLines = 1) },
+                    toggleControl = { Switch(checked = isChecked) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ToggleChipDefaults.toggleChipColors(
+                        checkedStartBackgroundColor = Color.Transparent,
+                        checkedEndBackgroundColor = Color.Transparent,
+                    ),
+                )
+            }
+        }
+        if (availableMaps.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            if (!deleting) {
+                Chip(
+                    onClick = { deleting = true; toDelete = emptySet(); confirming = false },
+                    label = { Text("Smazat mapy…", fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                    colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                Chip(
+                    enabled = ticked.isNotEmpty(),
+                    onClick = {
+                        if (!confirming) {
+                            confirming = true
+                        } else {
+                            onDelete(ticked)
+                            deleting = false; confirming = false; toDelete = emptySet()
+                        }
+                    },
+                    label = {
+                        Text(
+                            when {
+                                ticked.isEmpty() -> "Zaškrtni mapy ke smazání"
+                                confirming -> "Opravdu smazat ${ticked.size}? (klepni znovu)"
+                                else -> "Smazat vybrané (${ticked.size})"
+                            },
+                            fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+                        )
+                    },
+                    colors = ChipDefaults.chipColors(backgroundColor = if (confirming) Color(0xFFB71C1C) else Color(0xFF5A1010)),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(4.dp))
+                Chip(
+                    onClick = { deleting = false; confirming = false; toDelete = emptySet() },
+                    label = { Text("Zrušit", fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                    colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
+
+private fun formatSize(bytes: Long): String =
+    if (bytes >= 1_000_000) "%.1f MB".format(bytes / 1_000_000.0) else "${bytes / 1000} kB"
 
 // ── Tab 2: Theme ──────────────────────────────────────────────────────────────
 

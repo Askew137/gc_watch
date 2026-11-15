@@ -251,7 +251,7 @@ private fun MapFileCard(file: File, sendEnabled: Boolean, onSendToWatch: () -> U
                 if (file.length() > 1_000_000L) {
                     // Over Bluetooth alone a few MB can take very long; with Wi-Fi it is quick.
                     Text(
-                        "Faster with Wi-Fi turned on on the watch",
+                        "Fast when the phone and the watch are on the same Wi-Fi",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -453,7 +453,8 @@ private fun TransferCard(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
-                                "Keep the watch awake and close; Wi-Fi on the watch is faster. If it breaks, Retry resumes.",
+                                if (state.mode == "Wi-Fi") "Over Wi-Fi: the watch downloads the file from the phone. If it breaks, Retry resumes."
+                                else "Over the slow Bluetooth link (the watch could not reach the phone over Wi-Fi). Put both on the same Wi-Fi to make it faster.",
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }

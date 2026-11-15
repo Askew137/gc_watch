@@ -344,6 +344,14 @@ fun MapScreen(
                     ambientGpsSeconds = it
                     UiPrefs.setAmbientGpsSeconds(context, it)
                 },
+                onDeleteMaps = { files ->
+                    files.forEach { f ->
+                        if (f.delete()) Timber.i("MapScreen: deleted map %s", f.name) else Timber.w("MapScreen: could not delete %s", f.name)
+                    }
+                    selectedMaps = selectedMaps - files.toSet()
+                    MapSelectionPrefs.save(context, automaticMapSelection, selectedMaps.map { it.name }.toSet())
+                    (context.applicationContext as WearApplication).mapsRevision.value++
+                },
                 onMapSelectionChange = { maps, auto ->
                     // Turning "automatic" off with nothing selected would leave the map blank.
                     val chosen = if (!auto && maps.isEmpty()) availableMaps else maps

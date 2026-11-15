@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The only network traffic of the watch app is the map download from the phone on the local Wi-Fi
+    (plain http://<private IP>:<port>/<token>/<file>). MapReceiver refuses any other address.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
