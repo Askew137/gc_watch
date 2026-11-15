@@ -17,7 +17,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +38,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.askew137.gcwatch.mobile.maps.MapTransferState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,12 +61,32 @@ fun MapsScreen(
 ) {
     val mapFiles by viewModel.mapFiles.collectAsState()
     val copyProgress by viewModel.copyProgress.collectAsState()
+    val transfer by viewModel.mapTransfer.collectAsState()
+    var fileToDelete by remember { mutableStateOf<File?>(null) }
+    val sending = transfer is MapTransferState.Working
 
     // SAF pickers
     val mapPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
         uri?.let { viewModel.copyMapFile(it) }
+    }
+
+    fileToDelete?.let { file ->
+        AlertDialog(
+            onDismissRequest = { fileToDelete = null },
+            title = { Text("Remove ${file.name} from the phone?") },
+            text = {
+                Text(
+                    "Only the phone's copy (${formatFileSize(file.length())}) is deleted. " +
+                        "A map already sent stays on the watch. You can add the file again later.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.deleteMapFile(file); fileToDelete = null }) { Text("Remove") }
+            },
+            dismissButton = { TextButton(onClick = { fileToDelete = null }) { Text("Keep") } },
+        )
     }
 
     Scaffold(
@@ -98,9 +124,24 @@ fun MapsScreen(
                 EmptyHint("No .map files yet. Add one below.")
             } else {
                 mapFiles.forEach { file ->
-                    MapFileCard(file = file, onSendToWatch = { viewModel.sendMapToWatch(file) })
+                    MapFileCard(
+                        file = file,
+                        sendEnabled = !sending,
+                        onSendToWatch = { viewModel.sendMapToWatch(file) },
+                        onRemove = { fileToDelete = file },
+                    )
                 }
             }
+
+            // Progress / result of sending a map to the watch.
+            TransferCard(
+                state = transfer,
+                phoneCopyExists = { name -> mapFiles.any { it.name == name } },
+                onCancel = { viewModel.cancelMapTransfer() },
+                onRetry = { name -> viewModel.retryMapTransfer(name) },
+                onDismiss = { viewModel.dismissMapTransfer() },
+                onRemoveFromPhone = { name -> mapFiles.firstOrNull { it.name == name }?.let { fileToDelete = it } },
+            )
 
             // Adding a map is part of this section (a floating button used to cover the list).
             Button(
@@ -183,7 +224,7 @@ private fun EmptyHint(text: String) {
 }
 
 @Composable
-private fun MapFileCard(file: File, onSendToWatch: () -> Unit) {
+private fun MapFileCard(file: File, sendEnabled: Boolean, onSendToWatch: () -> Unit, onRemove: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier.fillMaxWidth(),
@@ -216,8 +257,13 @@ private fun MapFileCard(file: File, onSendToWatch: () -> Unit) {
                     )
                 }
             }
-            Button(onClick = onSendToWatch) {
-                Text("Send to watch")
+            Column(horizontalAlignment = Alignment.End) {
+                Button(onClick = onSendToWatch, enabled = sendEnabled) {
+                    Text("Send to watch")
+                }
+                TextButton(onClick = onRemove) {
+                    Text("Remove from phone", color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
@@ -363,4 +409,92 @@ private fun RoutingDataSection(viewModel: MobileViewModel) {
             color = Color.Red,
         )
     }
+}
+
+
+/** Progress bar, size, speed and time left for the transfer to the watch; the result afterwards. */
+@Composable
+private fun TransferCard(
+    state: MapTransferState,
+    phoneCopyExists: (String) -> Boolean,
+    onCancel: () -> Unit,
+    onRetry: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onRemoveFromPhone: (String) -> Unit,
+) {
+    if (state is MapTransferState.Idle) return
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = when (state) {
+                is MapTransferState.Failed -> MaterialTheme.colorScheme.errorContainer
+                else -> MaterialTheme.colorScheme.primaryContainer
+            },
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            when (state) {
+                is MapTransferState.Working -> {
+                    Text("Sending ${state.fileName} to the watch", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    when (state.phase) {
+                        MapTransferState.Phase.ASKING_WATCH -> {
+                            Text("Asking the watch what it already has…", style = MaterialTheme.typography.bodySmall)
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
+                        MapTransferState.Phase.SENDING -> {
+                            LinearProgressIndicator(progress = { state.percent / 100f }, modifier = Modifier.fillMaxWidth())
+                            Text(
+                                "${state.percent} %  ·  ${formatFileSize(state.sentBytes)} of ${formatFileSize(state.totalBytes)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Text(
+                                (if (state.bytesPerSec > 0) "${formatFileSize(state.bytesPerSec)}/s" else "measuring speed…") +
+                                    (state.secondsLeft?.let { "  ·  ${formatDuration(it)} left" } ?: ""),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text(
+                                "Keep the watch awake and close; Wi-Fi on the watch is faster. If it breaks, Retry resumes.",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        MapTransferState.Phase.CONFIRMING -> {
+                            Text("Sent. Waiting for the watch to confirm the file…", style = MaterialTheme.typography.bodySmall)
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                    OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                }
+                is MapTransferState.Done -> {
+                    Text("${state.fileName} is on the watch", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Confirmed by the watch (${formatFileSize(state.totalBytes)}). You can remove the phone's copy to free space.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (phoneCopyExists(state.fileName)) {
+                            Button(onClick = { onRemoveFromPhone(state.fileName) }) { Text("Remove from phone") }
+                        }
+                        OutlinedButton(onClick = onDismiss) { Text("OK") }
+                    }
+                }
+                is MapTransferState.Failed -> {
+                    Text("Sending ${state.fileName} failed", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(state.message, style = MaterialTheme.typography.bodySmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (phoneCopyExists(state.fileName)) {
+                            Button(onClick = { onRetry(state.fileName) }) { Text("Retry (resumes)") }
+                        }
+                        OutlinedButton(onClick = onDismiss) { Text("Dismiss") }
+                    }
+                }
+                MapTransferState.Idle -> Unit
+            }
+        }
+    }
+}
+
+private fun formatDuration(seconds: Long): String = when {
+    seconds < 60 -> "$seconds s"
+    seconds < 3600 -> "${seconds / 60} min ${seconds % 60} s"
+    else -> "${seconds / 3600} h ${(seconds % 3600) / 60} min"
 }

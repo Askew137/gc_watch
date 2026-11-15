@@ -2,7 +2,9 @@ package com.askew137.gcwatch.mobile.wearable
 
 import android.content.Intent
 import com.askew137.gcwatch.core.communication.ConfigSerializer
+import com.askew137.gcwatch.core.communication.MapTransferProtocol
 import com.askew137.gcwatch.core.communication.MessagePaths
+import com.askew137.gcwatch.mobile.maps.MapTransferService
 import com.askew137.gcwatch.core.communication.RouteRequest
 import com.askew137.gcwatch.core.communication.RouteSerializer
 import com.askew137.gcwatch.core.model.ComputedRoute
@@ -40,6 +42,8 @@ class MobileMessageService : WearableListenerService() {
             MessagePaths.UPDATE_WEAR_RECEIVED -> AppUpdater.onWatchAck()
             MessagePaths.VERSION_RESULT -> WatchVersion.onResult(event.data)
             MessagePaths.CONFIG_SYNC   -> handleConfigSync(event)
+            MapTransferProtocol.RESUME_ANSWER -> MapTransferService.onResumeAnswer(event.data)
+            MapTransferProtocol.STORED -> MapTransferService.onStored(event.data)
             else -> Timber.w("Unhandled message path: ${event.path}")
         }
     }

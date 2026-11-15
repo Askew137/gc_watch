@@ -118,6 +118,23 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
         MapTransferService.startTransfer(app, Uri.fromFile(mapFile))
     }
 
+    val mapTransfer = MapTransferService.state
+
+    fun cancelMapTransfer() = MapTransferService.cancel(app)
+
+    fun dismissMapTransfer() = MapTransferService.dismissResult()
+
+    /** Retry resumes: the watch tells how much of the file it already has. */
+    fun retryMapTransfer(fileName: String) {
+        _mapFiles.value.firstOrNull { it.name == fileName }?.let { sendMapToWatch(it) }
+    }
+
+    /** Removes the phone's copy (e.g. after sending, so the map lives only on the watch). The watch keeps its copy. */
+    fun deleteMapFile(file: File) {
+        if (file.delete()) Timber.i("Deleted %s from the phone", file.name) else Timber.w("Could not delete %s", file.name)
+        refreshMapFiles()
+    }
+
     fun refreshSegments() {
         _installedSegments.value = SegmentRepository.installedFiles(app)
     }

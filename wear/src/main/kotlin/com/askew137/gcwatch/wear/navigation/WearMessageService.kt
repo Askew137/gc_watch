@@ -1,6 +1,7 @@
 package com.askew137.gcwatch.wear.navigation
 
 import com.askew137.gcwatch.core.communication.ApkInstaller
+import com.askew137.gcwatch.core.communication.MapTransferProtocol
 import com.askew137.gcwatch.core.communication.MessagePaths
 import com.askew137.gcwatch.wear.WearApplication
 import com.askew137.gcwatch.wear.config.ConfigRepository
@@ -29,6 +30,8 @@ class WearMessageService : WearableListenerService() {
     private val configRepo: ConfigRepository
         get() = (applicationContext as WearApplication).configRepository
 
+    private val mapReceiver by lazy { MapReceiver(applicationContext) }
+
     override fun onMessageReceived(event: MessageEvent) {
         Timber.d("WearMessageService: received message on path=%s size=%d", event.path, event.data.size)
         when (event.path) {
@@ -39,6 +42,7 @@ class WearMessageService : WearableListenerService() {
             MessagePaths.ROUTE_RESULT -> navigationRepo.onRouteResult(event.data)
             MessagePaths.CONFIG_SYNC -> configRepo.onRemoteSync(event.data)
             MessagePaths.VERSION_REQUEST -> answerVersion(event.sourceNodeId)
+            MapTransferProtocol.RESUME_QUERY -> mapReceiver.answerResumeQuery(event.data, event.sourceNodeId)
             else -> Timber.d("WearMessageService: unhandled path %s", event.path)
         }
     }
@@ -73,50 +77,11 @@ class WearMessageService : WearableListenerService() {
             receiveUpdate(channel)
             return
         }
-        if (!path.startsWith(MAP_TRANSFER_PREFIX)) {
-            Timber.d("WearMessageService: ignoring channel %s", path)
+        if (path.startsWith(MapTransferProtocol.CHANNEL_PREFIX)) {
+            mapReceiver.receive(channel)
             return
         }
-
-        // Keep only the file name; never trust the remote path for directory traversal.
-        val fileName = File(path.removePrefix(MAP_TRANSFER_PREFIX)).name
-        if (!fileName.endsWith(".map")) {
-            Timber.w("WearMessageService: rejecting non-.map transfer %s", path)
-            return
-        }
-
-        val mapsDir = File(filesDir, "maps").apply { mkdirs() }
-        val tmp = File(mapsDir, "$fileName.part")
-        val dest = File(mapsDir, fileName)
-        val client = Wearable.getChannelClient(this)
-
-        try {
-            Timber.i("WearMessageService: receiving map %s", fileName)
-            val input = Tasks.await(client.getInputStream(channel))
-            var total = 0L
-            input.use { src ->
-                tmp.outputStream().use { out ->
-                    val buf = ByteArray(16 * 1024)
-                    var n: Int
-                    while (src.read(buf).also { n = it } != -1) {
-                        out.write(buf, 0, n)
-                        total += n
-                    }
-                }
-            }
-            if (dest.exists()) dest.delete()
-            if (tmp.renameTo(dest)) {
-                Timber.i("WearMessageService: map %s received (%d bytes)", fileName, total)
-                (applicationContext as WearApplication).mapsRevision.value++
-            } else {
-                Timber.e("WearMessageService: could not move %s into place", fileName)
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "WearMessageService: map transfer failed for %s", fileName)
-            tmp.delete()
-        } finally {
-            runCatching { Tasks.await(client.close(channel)) }
-        }
+        Timber.d("WearMessageService: ignoring channel %s", path)
     }
 
     /** Stores the new watch APK from the phone and lets the UI offer the installation. */
@@ -172,6 +137,5 @@ class WearMessageService : WearableListenerService() {
 
     private companion object {
         const val MAX_UPDATE_BYTES = 100L * 1024 * 1024
-        const val MAP_TRANSFER_PREFIX = "/map_transfer/"
     }
 }

@@ -35,6 +35,7 @@ class WearApplication : Application() {
             Timber.plant(Timber.DebugTree())
         }
         restorePendingUpdate()
+        Thread { com.askew137.gcwatch.wear.navigation.MapReceiver(this).cleanupStale() }.start()
     }
 
     /** The process may have been restarted between receiving the APK and the user's tap. */
