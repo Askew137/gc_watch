@@ -63,6 +63,8 @@ dependencies {
     implementation(platform(libs.compose.bom))
     // Wear OS Compose
     implementation(libs.androidx.wear) // AmbientLifecycleObserver
+    // A transitive dependency pulls fragment 1.2.4, which lint rejects for the ActivityResult API (permission dialog)
+    implementation(libs.androidx.fragment)
     implementation(libs.wear.ongoing) // the chip on the watch face for the navigation service
     implementation(libs.wear.compose.material)
     implementation(libs.wear.compose.foundation)
