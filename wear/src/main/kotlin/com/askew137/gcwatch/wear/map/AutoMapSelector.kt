@@ -14,6 +14,26 @@ class AutoMapSelector(private val context: Context) {
 
     private val mapsDir: File get() = File(context.filesDir, "maps")
 
+    // Reading the bounding box means opening the .map file. That is called on the UI thread on every
+    // GPS fix and now on every finger drag, so it is done once per file (and again if the file changes).
+    private data class CachedBox(val length: Long, val modified: Long, val box: BoundingBox?)
+    private val boxes = java.util.concurrent.ConcurrentHashMap<String, CachedBox>()
+
+    private fun boundingBoxOf(file: File): BoundingBox? {
+        val length = file.length()
+        val modified = file.lastModified()
+        boxes[file.path]?.let { if (it.length == length && it.modified == modified) return it.box }
+        val box = try {
+            val mapFile = MapFile(file)
+            try { mapFile.mapFileInfo.boundingBox } finally { mapFile.close() }
+        } catch (e: Exception) {
+            Timber.e(e, "AutoMapSelector: failed to read bounding box from %s", file.name)
+            null
+        }
+        boxes[file.path] = CachedBox(length, modified, box)
+        return box
+    }
+
     /** All .map files found in the maps directory. */
     fun availableMapFiles(): List<File> {
         if (!mapsDir.exists()) return emptyList()
@@ -28,19 +48,7 @@ class AutoMapSelector(private val context: Context) {
         val available = availableMapFiles()
         if (!automatic) return available
 
-        return available.filter { file ->
-            try {
-                val mapFile = MapFile(file)
-                val bbox: BoundingBox = mapFile.mapFileInfo.boundingBox
-                mapFile.close()
-                bbox.contains(lat, lon)
-            } catch (e: Exception) {
-                Timber.e(e, "AutoMapSelector: failed to read bounding box from %s", file.name)
-                false
-            }
-        }.also { selected ->
-            Timber.d("AutoMapSelector: %d/%d maps contain (%.4f, %.4f)", selected.size, available.size, lat, lon)
-        }
+        return available.filter { file -> boundingBoxOf(file)?.contains(lat, lon) == true }
     }
 
     /**
@@ -49,14 +57,8 @@ class AutoMapSelector(private val context: Context) {
      */
     fun firstMapCenter(): Pair<Double, Double>? {
         for (file in availableMapFiles().sortedBy { it.name }) {
-            try {
-                val mapFile = MapFile(file)
-                val center = mapFile.mapFileInfo.boundingBox.centerPoint
-                mapFile.close()
-                return center.latitude to center.longitude
-            } catch (e: Exception) {
-                Timber.e(e, "AutoMapSelector: failed to read bounding box from %s", file.name)
-            }
+            val center = boundingBoxOf(file)?.centerPoint ?: continue
+            return center.latitude to center.longitude
         }
         return null
     }

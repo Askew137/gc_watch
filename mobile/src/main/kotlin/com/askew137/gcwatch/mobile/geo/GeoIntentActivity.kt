@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import com.askew137.gcwatch.core.communication.MessagePaths
 import com.askew137.gcwatch.core.communication.WaypointSerializer
@@ -44,6 +47,7 @@ class GeoIntentActivity : ComponentActivity() {
         val uri = intent?.data
         if (uri == null) {
             Timber.w("GeoIntentActivity launched with null URI")
+            toast(applicationContext, "GC Watch: the link has no location")
             finish()
             return
         }
@@ -52,6 +56,7 @@ class GeoIntentActivity : ComponentActivity() {
         val waypoint = parseGeoUri(uri)
         if (waypoint == null) {
             Timber.e("Failed to parse geo URI: $uri")
+            toast(applicationContext, "GC Watch: could not read coordinates from the link")
             finish()
             return
         }
@@ -66,6 +71,7 @@ class GeoIntentActivity : ComponentActivity() {
             val nodes = Wearable.getNodeClient(context).connectedNodes.await()
             if (nodes.isEmpty()) {
                 Timber.w("No connected Wear OS nodes – dropping waypoint")
+                toast(context, "GC Watch: the watch is not connected, target not sent")
                 return
             }
             val payload = WaypointSerializer.encode(waypoint)
@@ -74,9 +80,15 @@ class GeoIntentActivity : ComponentActivity() {
                 client.sendMessage(node.id, MessagePaths.SET_TARGET, payload).await()
                 Timber.i("Sent waypoint ${waypoint.code.ifEmpty { waypoint.label }} to ${node.displayName}")
             }
+            toast(context, "Sent to the watch: " + waypoint.code.ifEmpty { waypoint.label.ifEmpty { "%.5f, %.5f".format(waypoint.lat, waypoint.lon) } })
         } catch (e: Exception) {
             Timber.e(e, "Error forwarding geo URI waypoint to watch")
+            toast(context, "GC Watch: sending to the watch failed (${e.message ?: e.javaClass.simpleName})")
         }
+    }
+
+    private fun toast(context: Context, text: String) {
+        Handler(Looper.getMainLooper()).post { Toast.makeText(context, text, Toast.LENGTH_LONG).show() }
     }
 
     companion object {

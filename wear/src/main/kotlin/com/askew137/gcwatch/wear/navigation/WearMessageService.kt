@@ -32,11 +32,23 @@ class WearMessageService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
         Timber.d("WearMessageService: received message on path=%s size=%d", event.path, event.data.size)
         when (event.path) {
-            MessagePaths.SET_TARGET -> navigationRepo.onSetTarget(event.data)
+            MessagePaths.SET_TARGET -> {
+                navigationRepo.onSetTarget(event.data)
+                buzz() // the app may be closed: let the wearer feel that the target arrived
+            }
             MessagePaths.ROUTE_RESULT -> navigationRepo.onRouteResult(event.data)
             MessagePaths.CONFIG_SYNC -> configRepo.onRemoteSync(event.data)
             MessagePaths.VERSION_REQUEST -> answerVersion(event.sourceNodeId)
             else -> Timber.d("WearMessageService: unhandled path %s", event.path)
+        }
+    }
+
+    private fun buzz() {
+        try {
+            val vibrator = getSystemService(android.os.Vibrator::class.java) ?: return
+            vibrator.vibrate(android.os.VibrationEffect.createOneShot(150, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+        } catch (e: Exception) {
+            Timber.w(e, "WearMessageService: could not vibrate")
         }
     }
 

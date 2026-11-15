@@ -58,6 +58,8 @@ import com.askew137.gcwatch.wear.map.MapEngineService
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import timber.log.Timber
 import com.askew137.gcwatch.wear.WearApplication
@@ -135,6 +137,14 @@ fun MapScreen(
             ?: LatLon(50.0755, 14.4378)
     }
 
+    // Finger panning: null = the map follows the wearer; set = the view was dragged elsewhere
+    // (the recenter button goes back).
+    var panCenter by remember { mutableStateOf<LatLon?>(null) }
+    val viewCenter = panCenter ?: center
+    val viewCenterNow by androidx.compose.runtime.rememberUpdatedState(viewCenter)
+    val zoomNow by androidx.compose.runtime.rememberUpdatedState(zoom)
+    val rotationNow by androidx.compose.runtime.rememberUpdatedState(rotationDeg)
+
     // Map file management
     var showMenu by remember { mutableStateOf(false) }
     val availableMaps = remember(autoMapSelector, showMenu, mapsRevision) { autoMapSelector.availableMapFiles() }
@@ -146,10 +156,10 @@ fun MapScreen(
     var automaticMapSelection by remember { mutableStateOf(MapSelectionPrefs.automatic(context)) }
 
     // Update engine when map files change
-    val effectiveMaps by remember(automaticMapSelection, selectedMaps, center, mapsRevision) {
+    val effectiveMaps by remember(automaticMapSelection, selectedMaps, viewCenter, mapsRevision) {
         derivedStateOf {
             if (automaticMapSelection) {
-                autoMapSelector.selectMapsForPosition(center.lat, center.lon, true)
+                autoMapSelector.selectMapsForPosition(viewCenter.lat, viewCenter.lon, true)
             } else {
                 selectedMaps
             }
@@ -185,7 +195,8 @@ fun MapScreen(
         // ── Map canvas ───────────────────────────────────────────────────────
         MapCanvas(
             engine = mapEngine,
-            center = center,
+            center = viewCenter,
+            me = center,
             zoom = zoom,
             mapsVersion = mapsVersion,
             rotationDeg = rotationDeg,
@@ -194,7 +205,14 @@ fun MapScreen(
             target = activeTarget,
             lineMode = effectiveLineMode,
             accentColor = accentColor,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectDragGestures { change, drag ->
+                        change.consume()
+                        panCenter = panCenter(viewCenterNow, drag.x, drag.y, zoomNow.toInt(), rotationNow)
+                    }
+                },
         )
 
         // ── Top: zoom buttons ────────────────────────────────────────────────
@@ -256,8 +274,12 @@ fun MapScreen(
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp).offset(y = (-22).dp),
         )
         EdgeIconButton(
-            onClick = { mapViewModel.resetNorthUp() },
-            icon = { Icon(Icons.Rounded.MyLocation, contentDescription = "Vycentrovat, sever nahoře", modifier = Modifier.size(20.dp), tint = accentColor) },
+            onClick = {
+                panCenter = null
+                mapViewModel.resetNorthUp()
+            },
+            // White while the view is dragged away from me: "tap to come back".
+            icon = { Icon(Icons.Rounded.MyLocation, contentDescription = "Vycentrovat, sever nahoře", modifier = Modifier.size(20.dp), tint = if (panCenter != null) Color.White else accentColor) },
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp).offset(y = 22.dp),
         )
 

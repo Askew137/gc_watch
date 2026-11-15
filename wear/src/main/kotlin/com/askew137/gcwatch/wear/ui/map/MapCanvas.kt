@@ -40,6 +40,7 @@ data class LatLon(val lat: Double, val lon: Double)
  *
  * @param engine       The [MapEngineService] used to render tiles.
  * @param center       Current WGS-84 center of the viewport.
+ * @param me           Position of the wearer (dot and view cone); defaults to the viewport centre.
  * @param zoom         Zoom level (8f..19f).
  * @param rotationDeg  Canvas rotation in degrees (0 = north-up).
  * @param headingDeg   Where the wearer is looking (0 = north, clockwise); null = no cone yet.
@@ -52,6 +53,8 @@ data class LatLon(val lat: Double, val lon: Double)
 fun MapCanvas(
     engine: MapEngineService,
     center: LatLon,
+    /** Where the wearer is; drawn there even when the view is panned away from it. Null = at the view centre. */
+    me: LatLon? = null,
     zoom: Float,
     mapsVersion: Int,
     rotationDeg: Float,
@@ -87,8 +90,13 @@ fun MapCanvas(
 
         // View-direction cone (un-rotated): the map is rotated clockwise by rotationDeg, so a
         // heading of h points at h + rotationDeg clockwise from the top of the screen.
+        // The wearer's position on screen: the centre while following, elsewhere when panned.
+        val mePos = if (me == null) center(size) else {
+            val (mx, my) = latLonToCanvas(me.lat, me.lon, center, zoomByte.toInt(), canvasW, canvasH)
+            rotatePoint(Offset(mx, my), center(size), rotationDeg)
+        }
         if (headingDeg != null) {
-            val c = center(size)
+            val c = mePos
             val r = 50.dp.toPx()
             val half = 24f
             drawArc(
@@ -106,17 +114,17 @@ fun MapCanvas(
         drawCircle(
             color = Color.Black.copy(alpha = 0.85f),
             radius = 11.dp.toPx(),
-            center = center(size),
+            center = mePos,
         )
         drawCircle(
             color = accentColor,
             radius = 8.dp.toPx(),
-            center = center(size),
+            center = mePos,
         )
         drawCircle(
             color = Color.White,
             radius = 8.dp.toPx(),
-            center = center(size),
+            center = mePos,
             style = Stroke(width = 2.dp.toPx()),
         )
     }
@@ -270,3 +278,32 @@ private fun latLonToCanvas(
 }
 
 private fun center(size: Size) = Offset(size.width / 2, size.height / 2)
+
+/** [p] rotated clockwise by [degrees] around [pivot] (screen coordinates, y down). */
+private fun rotatePoint(p: Offset, pivot: Offset, degrees: Float): Offset {
+    val r = Math.toRadians(degrees.toDouble())
+    val c = cos(r).toFloat()
+    val s = sin(r).toFloat()
+    val dx = p.x - pivot.x
+    val dy = p.y - pivot.y
+    return Offset(pivot.x + dx * c - dy * s, pivot.y + dx * s + dy * c)
+}
+
+/**
+ * The new viewport centre after the finger dragged the map by ([dxPx], [dyPx]) on screen. The map is
+ * drawn rotated clockwise by [rotationDeg], so the drag is first turned back into map pixels;
+ * the content follows the finger, i.e. the centre moves the opposite way.
+ */
+internal fun panCenter(center: LatLon, dxPx: Float, dyPx: Float, zoom: Int, rotationDeg: Float): LatLon {
+    val r = Math.toRadians(rotationDeg.toDouble())
+    val mx = dxPx * cos(r) + dyPx * sin(r)
+    val my = -dxPx * sin(r) + dyPx * cos(r)
+    val n = 2.0.pow(zoom.toDouble())
+    var x = (center.lon + 180.0) / 360.0 * n
+    var y = (1.0 - ln(tan(center.lat * PI / 180.0) + 1.0 / cos(center.lat * PI / 180.0)) / PI) / 2.0 * n
+    x -= mx / TILE_SIZE_PX
+    y -= my / TILE_SIZE_PX
+    val lon = (x / n * 360.0 - 180.0).coerceIn(-180.0, 180.0)
+    val lat = (Math.atan(Math.sinh(PI * (1.0 - 2.0 * y / n))) * 180.0 / PI).coerceIn(-85.0, 85.0)
+    return LatLon(lat, lon)
+}

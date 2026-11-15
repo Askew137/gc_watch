@@ -207,6 +207,14 @@ private fun MapFileCard(file: File, onSendToWatch: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (file.length() > 1_000_000L) {
+                    // Over Bluetooth alone a few MB can take very long; with Wi-Fi it is quick.
+                    Text(
+                        "Faster with Wi-Fi turned on on the watch",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             Button(onClick = onSendToWatch) {
                 Text("Send to watch")

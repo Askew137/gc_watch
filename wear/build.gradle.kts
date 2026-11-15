@@ -106,4 +106,6 @@ dependencies {
     // Internal modules
     implementation(project(":core:model"))
     implementation(project(":core:communication"))
+
+    testImplementation(libs.junit)
 }
