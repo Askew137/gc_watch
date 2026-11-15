@@ -20,6 +20,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +49,8 @@ sealed interface MapTransferState {
         val sentBytes: Long = 0,
         val totalBytes: Long = 0,
         val bytesPerSec: Long = 0,
+        /** Why Wi-Fi was not used, when the slow link is in use. */
+        val note: String = "",
         /** How the file travels: "Wi-Fi" (direct, fast) or "Bluetooth link" (the slow Data Layer channel). */
         val mode: String = "",
     ) : MapTransferState {
@@ -87,8 +91,7 @@ class MapTransferService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_CANCEL) {
             Timber.i("Map transfer cancelled")
-            job?.cancel()
-            job = null
+            job?.cancel() // keep the reference: cancelled() looks at it
             if (_state.value is MapTransferState.Working) _state.value = MapTransferState.Idle
             stopSelf()
             return START_NOT_STICKY
@@ -157,8 +160,10 @@ class MapTransferService : Service() {
 
         // 2a. Fast path: the watch downloads the rest from the phone over the local Wi-Fi.
         val lan = if (com.askew137.gcwatch.mobile.BuildConfig.LAN_TEST_HOST.isNotEmpty()) "test" else lanAddress()
+        note = ""
         if (lan != null && viaWifi(file, total, start, node.id, lan)) return
         mode = "Bluetooth link"
+        if (lan == null) note = "The phone is not connected to Wi-Fi (or it has no usable address)."
         Timber.i("Wi-Fi download not possible (%s): using the Data Layer channel", if (lan == null) "no Wi-Fi on the phone" else "the watch could not reach the phone")
 
         // 2b. Slow path: stream through the Data Layer channel.
@@ -175,7 +180,7 @@ class MapTransferService : Service() {
                 ?: return fail(name, "The watch did not confirm the file. Open GC Watch on the watch and tap Retry (it resumes).")
             if (result == "ok") {
                 Timber.i("Map transfer complete: %s", name)
-                _state.value = MapTransferState.Done(name, total)
+                if (!cancelled()) _state.value = MapTransferState.Done(name, total)
                 finishNotification(name, "Map sent to the watch")
             } else {
                 fail(name, "The file did not arrive completely. Tap Retry: it resumes where it stopped.")
@@ -229,7 +234,10 @@ class MapTransferService : Service() {
             while (!stored.isCompleted) {
                 delay(500)
                 val now = SystemClock.elapsedRealtime()
-                if (!server.contacted && now - began > WIFI_CONNECT_MS) return false // the watch cannot reach us
+                if (!server.contacted && now - began > WIFI_CONNECT_MS) {
+                    note = "Wi-Fi not used: the watch did not connect to ${lan}:$port within ${WIFI_CONNECT_MS / 1000} s (different network, or the router isolates devices)."
+                    return false
+                }
                 val served = server.servedUpTo.get().coerceAtLeast(start)
                 if (now - windowAt >= 2_000) {
                     speed = (served - windowBytes) * 1000 / (now - windowAt)
@@ -252,13 +260,18 @@ class MapTransferService : Service() {
             return when (val result = withTimeoutOrNull(CONFIRM_TIMEOUT_MS) { stored.await() }) {
                 "ok" -> {
                     Timber.i("Map transfer complete over Wi-Fi: %s", name)
-                    _state.value = MapTransferState.Done(name, total)
+                    if (!cancelled()) _state.value = MapTransferState.Done(name, total)
                     finishNotification(name, "Map sent to the watch")
                     true
                 }
-                "unreachable" -> false
                 null -> { fail(name, "The watch did not confirm the file. Open GC Watch on the watch and tap Retry (it resumes)."); true }
-                else -> { fail(name, "The file did not arrive completely. Tap Retry: it resumes where it stopped."); true }
+                else -> if (result.startsWith("unreachable")) {
+                    note = "Wi-Fi not used: " + (result.removePrefix("unreachable").removePrefix(":").ifBlank { "the watch could not reach the phone" })
+                    false
+                } else {
+                    fail(name, "The file did not arrive completely. Tap Retry: it resumes where it stopped.")
+                    true
+                }
             }
         } finally {
             server.stop()
@@ -271,6 +284,7 @@ class MapTransferService : Service() {
         val lastProgress = AtomicLong(SystemClock.elapsedRealtime())
         val stalled = AtomicBoolean(false)
         val finished = AtomicBoolean(false)
+        var outRef: java.io.OutputStream? = null
         coroutineScope {
             // A blocked write can only be ended by closing the channel: the watchdog does that when
             // no byte moves for STALL_MS, or when the transfer is cancelled.
@@ -285,13 +299,14 @@ class MapTransferService : Service() {
                     }
                 } finally {
                     if (!finished.get()) withContext(NonCancellable) {
+                        runCatching { outRef?.close() }
                         runCatching { withTimeout(2_000) { client.close(channel).await() } }
                     }
                 }
             }
             try {
                 withContext(Dispatchers.IO) {
-                    client.getOutputStream(channel).await().use { out ->
+                    client.getOutputStream(channel).await().also { outRef = it }.use { out ->
                         file.inputStream().use { input ->
                             var skipped = 0L
                             while (skipped < start) {
@@ -306,6 +321,9 @@ class MapTransferService : Service() {
                             var speed = 0L
                             var lastUi = 0L
                             while (true) {
+                                // A blocked channel write cannot be interrupted, and closing the channel
+                                // did not end it: so look at the cancellation between the chunks.
+                                currentCoroutineContext().ensureActive()
                                 val n = input.read(buffer)
                                 if (n == -1) break
                                 out.write(buffer, 0, n)
@@ -352,15 +370,21 @@ class MapTransferService : Service() {
         }
     }
 
+    /** A cancelled transfer may still be stuck in a blocked channel write: it must not touch the state any more. */
+    private fun cancelled() = job?.isCancelled == true
+
     private fun fail(name: String, message: String) {
+        if (cancelled()) return
         _state.value = MapTransferState.Failed(name, message)
         finishNotification(name, "Map transfer failed")
     }
 
     private var mode = ""
+    private var note = ""
 
     private fun setWorking(name: String, phase: MapTransferState.Phase, sent: Long, total: Long, speed: Long) {
-        _state.value = MapTransferState.Working(name, phase, sent, total, speed, mode)
+        if (cancelled()) return
+        _state.value = MapTransferState.Working(name, phase, sent, total, speed, note, mode)
     }
 
     // ── Notification helpers ──────────────────────────────────────────────────
@@ -376,6 +400,7 @@ class MapTransferService : Service() {
 
     /** At most once a second: a notification update per 8 KB chunk slowed the transfer itself. */
     private fun notify(fileName: String, percent: Int, title: String) {
+        if (cancelled()) return
         val now = SystemClock.elapsedRealtime()
         if (now - lastNotify < 1_000) return
         lastNotify = now
@@ -384,6 +409,7 @@ class MapTransferService : Service() {
     }
 
     private fun finishNotification(fileName: String, title: String) {
+        if (cancelled()) return
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
             .notify(NOTIF_ID, notification(fileName, null, title, ongoing = false))
     }

@@ -177,7 +177,7 @@ class MapReceiver(private val context: Context) {
             )
             if (!latch.await(WIFI_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS) || wifi == null) {
                 Timber.w("MapReceiver: no Wi-Fi network for the download")
-                outcome = "unreachable"
+                outcome = "unreachable:the watch has no Wi-Fi connection (it is connected only through the phone)"
                 return
             }
             note.writeText(size.toString())
@@ -189,7 +189,8 @@ class MapReceiver(private val context: Context) {
                 }.also { it.connect() }
             } catch (e: java.io.IOException) {
                 Timber.w(e, "MapReceiver: cannot reach the phone at %s", url)
-                outcome = "unreachable"
+                outcome = "unreachable:the watch could not connect to the phone (" +
+                    (e.message ?: e.javaClass.simpleName).replace('|', ' ').take(80) + ")"
                 return
             }
             val code = conn.responseCode

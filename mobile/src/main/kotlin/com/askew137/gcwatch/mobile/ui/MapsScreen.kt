@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.askew137.gcwatch.mobile.routing.SegmentRepository
+import com.askew137.gcwatch.mobile.routing.TileNames
 import java.io.File
 import java.text.DecimalFormat
 
@@ -402,6 +403,9 @@ private fun RoutingDataSection(viewModel: MobileViewModel) {
         }
     }
 
+    // Any other area of the world: BRouter provides the whole planet as 5x5 degree tiles.
+    OtherAreaCard(viewModel, installedNames, download != null)
+
     downloadError?.let {
         Text(
             "Download failed: $it",
@@ -454,7 +458,7 @@ private fun TransferCard(
                             )
                             Text(
                                 if (state.mode == "Wi-Fi") "Over Wi-Fi: the watch downloads the file from the phone. If it breaks, Retry resumes."
-                                else "Over the slow Bluetooth link (the watch could not reach the phone over Wi-Fi). Put both on the same Wi-Fi to make it faster.",
+                                else "Over the slow Bluetooth link. " + state.note.ifBlank { "Put the phone and the watch on the same Wi-Fi to make it faster." },
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }
@@ -498,4 +502,50 @@ private fun formatDuration(seconds: Long): String = when {
     seconds < 60 -> "$seconds s"
     seconds < 3600 -> "${seconds / 60} min ${seconds % 60} s"
     else -> "${seconds / 3600} h ${(seconds % 3600) / 60} min"
+}
+
+
+/** Download the routing tile for any place: type coordinates ("48.2, 16.4") or a tile name ("E15_N45"). */
+@Composable
+private fun OtherAreaCard(viewModel: MobileViewModel, installedNames: Set<String>, busy: Boolean) {
+    var input by remember { mutableStateOf("") }
+    val sizes by viewModel.segmentRemoteSizes.collectAsState()
+    val tile = TileNames.resolve(input)
+    LaunchedEffect(tile) { if (tile != null) viewModel.fetchSegmentSize(tile) }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Another area", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(
+                "Other country? Enter a place as coordinates (lat, lon, e.g. 48.2, 16.4 for Vienna) or a tile " +
+                    "name (e.g. E15_N45). Every tile is a 5°×5° square named by its south-west corner.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            androidx.compose.material3.OutlinedTextField(
+                value = input,
+                onValueChange = { input = it },
+                singleLine = true,
+                label = { Text("48.2, 16.4  or  E15_N45") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (input.isNotBlank() && tile == null) {
+                Text("Not a valid tile or coordinates.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            if (tile != null) {
+                val have = tile in installedNames
+                Text(
+                    if (have) "$tile is already installed."
+                    else "Tile $tile" + (sizes[tile]?.let { ", ${formatFileSize(it)}" } ?: ""),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (!have) {
+                    Button(onClick = { viewModel.downloadSegment(tile); input = "" }, enabled = !busy) { Text("Download $tile") }
+                }
+            }
+        }
+    }
 }
