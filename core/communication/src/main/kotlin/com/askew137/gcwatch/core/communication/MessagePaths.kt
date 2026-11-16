@@ -34,6 +34,14 @@ object MessagePaths {
     /** Watch → Phone: answer, payload `"<versionCode>|<versionName>"` as UTF-8 text. */
     const val VERSION_RESULT = "/version_result"
 
+    /**
+     * Phone → Watch: the new watch APK is served on the phone's Wi-Fi address: `"<size>|<url>"`. Answered with
+     * [UPDATE_WEAR_RECEIVED] when stored, or [UPDATE_HTTP_UNREACHABLE] (payload: reason) when the watch cannot
+     * reach the phone: then the phone falls back to the slow channel.
+     */
+    const val UPDATE_HTTP_OFFER = "/update/wear_http"
+    const val UPDATE_HTTP_UNREACHABLE = "/update/wear_http_unreachable"
+
     /** Watch → Phone: the update APK arrived and is stored (the phone may close the channel). */
     const val UPDATE_WEAR_RECEIVED = "/update/wear_received"
 }

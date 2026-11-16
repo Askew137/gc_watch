@@ -19,6 +19,8 @@ android {
         targetSdk = 35
         versionCode = providers.gradleProperty("gcwatch.versionCode").get().toInt()
         versionName = providers.gradleProperty("gcwatch.versionName").get()
+        // Test hook: > 0 makes the background-service timeout fire after this many SECONDS (emulator tests only).
+        buildConfigField("int", "SERVICE_TIMEOUT_TEST_S", (providers.gradleProperty("gcwatch.serviceTimeoutTestSeconds").orNull ?: "0"))
     }
 
     signingConfigs {

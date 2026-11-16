@@ -85,6 +85,7 @@ fun WearApp(
             startDestination = DEST_MAP,
         ) {
             composable(DEST_MAP) {
+                ExitOnBack()
                 MapScreen(
                     config = config,
                     location = location,

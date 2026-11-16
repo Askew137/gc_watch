@@ -72,6 +72,8 @@ fun BottomMenuSheet(
     onReactionChange: (com.askew137.gcwatch.wear.ui.HeadingReaction) -> Unit,
     ambientGpsSeconds: Int,
     onAmbientGpsSecondsChange: (Int) -> Unit,
+    serviceTimeoutHours: Int,
+    onServiceTimeoutChange: (Int) -> Unit,
     onMapSelectionChange: (List<File>, Boolean) -> Unit,
     onDeleteMaps: (List<File>) -> Unit,
     onDismiss: () -> Unit,
@@ -140,6 +142,8 @@ fun BottomMenuSheet(
                     onReactionChange = onReactionChange,
                     ambientGpsSeconds = ambientGpsSeconds,
                     onAmbientGpsSecondsChange = onAmbientGpsSecondsChange,
+                    serviceTimeoutHours = serviceTimeoutHours,
+                    onServiceTimeoutChange = onServiceTimeoutChange,
                 )
             }
         }
@@ -337,6 +341,8 @@ private fun OstatniTab(
     onReactionChange: (com.askew137.gcwatch.wear.ui.HeadingReaction) -> Unit,
     ambientGpsSeconds: Int,
     onAmbientGpsSecondsChange: (Int) -> Unit,
+    serviceTimeoutHours: Int,
+    onServiceTimeoutChange: (Int) -> Unit,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -407,14 +413,24 @@ private fun OstatniTab(
             valueRange = minS.toFloat()..maxS.toFloat(),
             steps = (maxS - minS) / stepS - 1,
         )
-        Spacer(Modifier.height(8.dp))
-        val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
-        Chip(
-            onClick = { activity?.finish() },
-            label = { Text("Ukončit aplikaci", fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
-            colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
-            modifier = Modifier.fillMaxWidth(),
+        Spacer(Modifier.height(6.dp))
+        // How long the navigation service (GPS in the background) may run with the app not opened.
+        val choices = com.askew137.gcwatch.wear.ui.UiPrefs.SERVICE_TIMEOUT_CHOICES_H
+        val idx = choices.indexOf(serviceTimeoutHours).coerceAtLeast(0)
+        Text(
+            if (serviceTimeoutHours == 0) "Služba na pozadí: neomezeně"
+            else "Vypnout GPS na pozadí po $serviceTimeoutHours h",
+            fontSize = 11.sp, color = Color.White,
         )
+        InlineSlider(
+            value = idx.toFloat(),
+            onValueChange = { onServiceTimeoutChange(choices[it.toInt().coerceIn(0, choices.lastIndex)]) },
+            increaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Add, "Déle", Modifier.size(18.dp)) },
+            decreaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Remove, "Dříve", Modifier.size(18.dp)) },
+            valueRange = 0f..(choices.lastIndex).toFloat(),
+            steps = choices.size - 2,
+        )
+        Text("od odchodu z aplikace", fontSize = 9.sp, color = Color.Gray)
         Spacer(Modifier.height(10.dp))
         Text(
             "GC Watch v${com.askew137.gcwatch.wear.BuildConfig.VERSION_NAME} (${com.askew137.gcwatch.wear.BuildConfig.VERSION_CODE})",

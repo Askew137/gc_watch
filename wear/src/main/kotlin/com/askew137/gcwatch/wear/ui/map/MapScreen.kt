@@ -107,6 +107,7 @@ fun MapScreen(
     }
     var reaction by remember { mutableStateOf(UiPrefs.reaction(context)) }
     var ambientGpsSeconds by remember { mutableStateOf(UiPrefs.ambientGpsSeconds(context)) }
+    var serviceTimeoutHours by remember { mutableStateOf(UiPrefs.serviceTimeoutHours(context)) }
 
     // ROUTE without a route (e.g. cleared) falls back to the air line.
     val effectiveLineMode =
@@ -343,6 +344,11 @@ fun MapScreen(
                 onAmbientGpsSecondsChange = {
                     ambientGpsSeconds = it
                     UiPrefs.setAmbientGpsSeconds(context, it)
+                },
+                serviceTimeoutHours = serviceTimeoutHours,
+                onServiceTimeoutChange = {
+                    serviceTimeoutHours = it
+                    UiPrefs.setServiceTimeoutHours(context, it)
                 },
                 onDeleteMaps = { files ->
                     files.forEach { f ->

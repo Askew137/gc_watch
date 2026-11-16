@@ -138,6 +138,49 @@ class MapReceiver(private val context: Context) {
         return "ok"
     }
 
+    /** A connection to the phone over the local Wi-Fi; [failure] is set when there is none. Close it when done. */
+    private class Lan(val conn: java.net.HttpURLConnection?, val failure: String?, private val release: () -> Unit) : AutoCloseable {
+        override fun close() = release()
+    }
+
+    /**
+     * Asks Android for the Wi-Fi network (it may be idle) and opens [url] on exactly that network, with a
+     * `Range` header from [rangeFrom] when > 0. [Lan.failure] says why not (no Wi-Fi / cannot connect).
+     */
+    private fun connectLan(url: String, rangeFrom: Long): Lan {
+        val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+        val latch = java.util.concurrent.CountDownLatch(1)
+        var wifi: android.net.Network? = null
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) { wifi = network; latch.countDown() }
+        }
+        val release = { runCatching { cm.unregisterNetworkCallback(callback) }; Unit }
+        try {
+            cm.requestNetwork(
+                android.net.NetworkRequest.Builder().addTransportType(android.net.NetworkCapabilities.TRANSPORT_WIFI).build(),
+                callback,
+            )
+        } catch (e: Exception) {
+            return Lan(null, "the watch cannot use Wi-Fi (" + (e.message ?: e.javaClass.simpleName).replace('|', ' ').take(60) + ")", release)
+        }
+        if (!latch.await(WIFI_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS) || wifi == null) {
+            Timber.w("MapReceiver: no Wi-Fi network")
+            return Lan(null, "the watch has no Wi-Fi connection (it is connected only through the phone)", release)
+        }
+        return try {
+            val conn = (wifi!!.openConnection(java.net.URL(url)) as java.net.HttpURLConnection).apply {
+                connectTimeout = 8_000
+                readTimeout = 20_000
+                if (rangeFrom > 0) setRequestProperty("Range", "bytes=$rangeFrom-")
+            }
+            conn.connect()
+            Lan(conn, null, release)
+        } catch (e: java.io.IOException) {
+            Timber.w(e, "MapReceiver: cannot reach the phone at %s", url)
+            Lan(null, "the watch could not connect to the phone (" + (e.message ?: e.javaClass.simpleName).replace('|', ' ').take(80) + ")", release)
+        }
+    }
+
     /**
      * Phone → watch: download the rest of a map from the phone over the local Wi-Fi (see
      * [MapTransferProtocol.HTTP_OFFER]). Blocks until done. The Data Layer channel moves only a few KB/s in bursts.
@@ -156,8 +199,6 @@ class MapReceiver(private val context: Context) {
         val wakeLock = (context.getSystemService(Context.POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "gcwatch:map-download")
             .apply { acquire(WAKE_LOCK_MS) }
-        val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
-        var callback: android.net.ConnectivityManager.NetworkCallback? = null
         var outcome = "incomplete"
         try {
             val have = resumableBytes(name, size)
@@ -165,47 +206,98 @@ class MapReceiver(private val context: Context) {
                 Timber.w("MapReceiver: offset mismatch for %s (phone %d, watch %d)", name, offset, have)
                 return
             }
-            // Wi-Fi may be idle: ask for it explicitly, and use exactly that network for the (LAN) address.
-            val latch = java.util.concurrent.CountDownLatch(1)
-            var wifi: android.net.Network? = null
-            callback = object : android.net.ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: android.net.Network) { wifi = network; latch.countDown() }
+            connectLan(url, have).use { lan ->
+                val conn = lan.conn
+                if (conn == null) {
+                    outcome = "unreachable:" + lan.failure
+                    return
+                }
+                val code = conn.responseCode
+                if (code != 200 && code != 206 || (have > 0 && code != 206)) {
+                    Timber.w("MapReceiver: unexpected HTTP %d", code)
+                    return
+                }
+                note.writeText(size.toString())
+                Timber.i("MapReceiver: downloading %s from the phone, %d of %d bytes already here", name, have, size)
+                outcome = store(name, size, have, conn.inputStream)
             }
-            cm.requestNetwork(
-                android.net.NetworkRequest.Builder().addTransportType(android.net.NetworkCapabilities.TRANSPORT_WIFI).build(),
-                callback,
-            )
-            if (!latch.await(WIFI_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS) || wifi == null) {
-                Timber.w("MapReceiver: no Wi-Fi network for the download")
-                outcome = "unreachable:the watch has no Wi-Fi connection (it is connected only through the phone)"
-                return
-            }
-            note.writeText(size.toString())
-            val conn = try {
-                (wifi!!.openConnection(java.net.URL(url)) as java.net.HttpURLConnection).apply {
-                    connectTimeout = 8_000
-                    readTimeout = 20_000
-                    if (have > 0) setRequestProperty("Range", "bytes=$have-")
-                }.also { it.connect() }
-            } catch (e: java.io.IOException) {
-                Timber.w(e, "MapReceiver: cannot reach the phone at %s", url)
-                outcome = "unreachable:the watch could not connect to the phone (" +
-                    (e.message ?: e.javaClass.simpleName).replace('|', ' ').take(80) + ")"
-                return
-            }
-            val code = conn.responseCode
-            if (code != 200 && code != 206 || (have > 0 && code != 206)) {
-                Timber.w("MapReceiver: unexpected HTTP %d", code)
-                return
-            }
-            Timber.i("MapReceiver: downloading %s from the phone, %d of %d bytes already here", name, have, size)
-            outcome = store(name, size, have, conn.inputStream)
         } catch (e: Exception) {
             Timber.e(e, "MapReceiver: Wi-Fi download of %s broke", name)
         } finally {
-            callback?.let { runCatching { cm.unregisterNetworkCallback(it) } }
             if (wakeLock.isHeld) wakeLock.release()
             send(phoneNodeId, MapTransferProtocol.STORED, MapTransferProtocol.encode(name, size, outcome))
+        }
+    }
+
+    /**
+     * Phone → watch: the new watch APK over the local Wi-Fi (`"<size>|<url>"`) instead of the slow Data Layer
+     * channel. Same outcome as the channel path: the APK is verified and offered for installation, then
+     * [com.askew137.gcwatch.core.communication.MessagePaths.UPDATE_WEAR_RECEIVED]; when the phone cannot be reached the
+     * phone is told with [com.askew137.gcwatch.core.communication.MessagePaths.UPDATE_HTTP_UNREACHABLE] and falls back.
+     */
+    fun downloadUpdate(payload: ByteArray, phoneNodeId: String) {
+        val p = String(payload, Charsets.UTF_8).split('|', limit = 2)
+        val size = p.getOrNull(0)?.toLongOrNull() ?: 0L
+        val url = p.getOrNull(1).orEmpty()
+        if (size <= 0 || size > MAX_UPDATE_BYTES || !MapTransferProtocol.isPrivateLanUrl(url)) {
+            Timber.w("MapReceiver: rejecting a malformed or non-LAN update offer")
+            return
+        }
+        val dir = File(context.filesDir, "updates").apply { mkdirs() }
+        val tmp = File(dir, "wear.apk.part")
+        val dest = File(dir, "wear.apk")
+        val wakeLock = (context.getSystemService(Context.POWER_SERVICE) as PowerManager)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "gcwatch:update-download")
+            .apply { acquire(10 * 60 * 1000L) }
+        try {
+            connectLan(url, 0).use { lan ->
+                val conn = lan.conn
+                if (conn == null) {
+                    send(phoneNodeId, com.askew137.gcwatch.core.communication.MessagePaths.UPDATE_HTTP_UNREACHABLE,
+                        (lan.failure ?: "unreachable").toByteArray(Charsets.UTF_8))
+                    return
+                }
+                if (conn.responseCode != 200) {
+                    Timber.w("MapReceiver: update download answered HTTP %d", conn.responseCode)
+                    return
+                }
+                var total = 0L
+                conn.inputStream.use { src ->
+                    FileOutputStream(tmp).use { out ->
+                        val buf = ByteArray(BUFFER)
+                        while (true) {
+                            val n = src.read(buf)
+                            if (n == -1) break
+                            total += n
+                            if (total > size) throw IllegalStateException("more data than announced")
+                            out.write(buf, 0, n)
+                        }
+                        out.flush(); out.fd.sync()
+                    }
+                }
+                if (total != size) {
+                    Timber.w("MapReceiver: update ended after %d of %d bytes", total, size)
+                    tmp.delete()
+                    return // no acknowledgement: the phone reports the failure
+                }
+                val problem = com.askew137.gcwatch.core.communication.ApkInstaller.verifyUpdate(context, tmp)
+                when {
+                    problem == null -> {
+                        if (dest.exists()) dest.delete()
+                        tmp.renameTo(dest)
+                        (context.applicationContext as WearApplication).pendingUpdate.value = dest
+                        Timber.i("MapReceiver: update APK stored over Wi-Fi (%d bytes)", total)
+                    }
+                    problem.startsWith("not newer") -> { tmp.delete(); Timber.i("MapReceiver: watch already up to date") }
+                    else -> { tmp.delete(); Timber.w("MapReceiver: update APK rejected: %s", problem); return }
+                }
+                send(phoneNodeId, com.askew137.gcwatch.core.communication.MessagePaths.UPDATE_WEAR_RECEIVED, ByteArray(0))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "MapReceiver: update download broke")
+            tmp.delete()
+        } finally {
+            if (wakeLock.isHeld) wakeLock.release()
         }
     }
 
@@ -230,6 +322,7 @@ class MapReceiver(private val context: Context) {
         const val FREE_SPACE_MARGIN = 30L * 1024 * 1024
         const val WAKE_LOCK_MS = 30L * 60 * 1000
         const val WIFI_WAIT_MS = 10_000L
+        const val MAX_UPDATE_BYTES = 100L * 1024 * 1024
         const val STALE_MS = 7L * 24 * 3600 * 1000
     }
 }

@@ -3,7 +3,10 @@ package com.askew137.gcwatch.mobile.update
 import android.content.Context
 import com.askew137.gcwatch.core.communication.ApkInstaller
 import com.askew137.gcwatch.core.communication.MessagePaths
+import com.askew137.gcwatch.mobile.maps.LanAddress
+import com.askew137.gcwatch.mobile.maps.MapHttpServer
 import com.askew137.gcwatch.mobile.ui.MobileApplication
+import android.os.SystemClock
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -61,6 +64,14 @@ object AppUpdater {
 
     @Volatile
     private var job: Job? = null
+
+    /** The watch could not reach the phone over Wi-Fi (reason inside); the phone then uses the slow channel. */
+    @Volatile
+    private var lanFailure: CompletableDeferred<String>? = null
+
+    fun onWatchLanFailed(reason: String) {
+        lanFailure?.complete(reason)
+    }
 
     /** The watch gets this long without a single byte moving before the transfer is given up. */
     private const val STALL_MS = 30_000L
@@ -197,11 +208,60 @@ object AppUpdater {
         }
     }
 
+    /**
+     * Fast path: the phone serves the APK on its Wi-Fi address and the watch downloads it directly (the
+     * Data Layer channel moves only a few KB/s). Returns true when the watch confirmed the file; false when
+     * it could not reach the phone, so the caller falls back to the channel.
+     */
+    private suspend fun viaLan(context: Context, apk: File, nodeId: String, ack: CompletableDeferred<Unit>): Boolean {
+        val lan = LanAddress.find(context) ?: return false
+        val failure = CompletableDeferred<String>().also { lanFailure = it }
+        val token = LanAddress.token()
+        val server = MapHttpServer(apk, token)
+        try {
+            val port = server.start()
+            val url = "http://$lan:$port/$token/wear.apk"
+            Wearable.getMessageClient(context).sendMessage(
+                nodeId, MessagePaths.UPDATE_HTTP_OFFER, "${apk.length()}|$url".toByteArray(Charsets.UTF_8),
+            ).await()
+            val total = apk.length().coerceAtLeast(1)
+            val began = SystemClock.elapsedRealtime()
+            _state.value = State.Working("Sending to the watch (Wi-Fi)", 0)
+            while (!ack.isCompleted) {
+                delay(500)
+                if (failure.isCompleted) {
+                    Timber.i("Update over Wi-Fi not possible: %s", failure.getCompleted())
+                    return false
+                }
+                val now = SystemClock.elapsedRealtime()
+                if (!server.contacted && now - began > 20_000) {
+                    Timber.i("The watch did not connect to the phone over Wi-Fi within 20 s")
+                    return false
+                }
+                val served = server.servedUpTo.get()
+                _state.value = State.Working("Sending to the watch (Wi-Fi)", (served * 100 / total).toInt().coerceIn(0, 100))
+                val idle = System.nanoTime() / 1_000_000 - server.lastActivityMs.get()
+                if (server.contacted && served < total && idle > STALL_MS) {
+                    error("No data moved for ${STALL_MS / 1000} s over Wi-Fi: keep the watch awake and on the same Wi-Fi, then try again")
+                }
+                if (now - began > 10 * 60_000L) error("The watch did not confirm the update in time")
+            }
+            return true
+        } finally {
+            server.stop()
+            lanFailure = null
+        }
+    }
+
     private suspend fun sendToWatch(context: Context, apk: File) {
         val nodes = Wearable.getNodeClient(context).connectedNodes.await()
         val node = nodes.firstOrNull() ?: error("The watch is not connected")
 
         val ack = CompletableDeferred<Unit>().also { watchAck = it }
+        if (try { viaLan(context, apk, node.id, ack) } catch (e: CancellationException) { throw e }) {
+            watchAck = null
+            return
+        }
         val channelClient = Wearable.getChannelClient(context)
         val channel = withTimeout(20_000) {
             channelClient.openChannel(node.id, MessagePaths.CHANNEL_UPDATE_WEAR_APK).await()

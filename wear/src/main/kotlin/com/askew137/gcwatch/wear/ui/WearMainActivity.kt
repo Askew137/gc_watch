@@ -116,6 +116,7 @@ class WearMainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        NavigationService.cancelTimeout(this)
         gnssRepository.setUiVisible(true)
         gnssRepository.setActive("ui", true)
         startNavigationServiceIfAllowed()
@@ -126,6 +127,7 @@ class WearMainActivity : ComponentActivity() {
         // Screen off or another app on top: the GPS keeps running only if the service holds it.
         gnssRepository.setUiVisible(false)
         gnssRepository.setActive("ui", false)
+        if (!isFinishing) NavigationService.startTimeout(this)
     }
 
     override fun onDestroy() {

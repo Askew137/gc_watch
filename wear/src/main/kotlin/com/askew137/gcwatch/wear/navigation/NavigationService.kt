@@ -34,6 +34,11 @@ class NavigationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_TIMEOUT) {
+            Timber.i("NavigationService: stopped after the configured time in the background")
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (intent?.action == ACTION_STOP) {
             Timber.i("NavigationService: stopped from the notification")
             stopSelf()
@@ -47,6 +52,7 @@ class NavigationService : Service() {
     }
 
     override fun onDestroy() {
+        cancelTimeout(this)
         gnss.setActive("service", false)
         Timber.i("NavigationService: destroyed")
         super.onDestroy()
@@ -93,6 +99,31 @@ class NavigationService : Service() {
         private const val CHANNEL_ID = "navigation"
         private const val NOTIFICATION_ID = 1137
         private const val ACTION_STOP = "com.askew137.gcwatch.wear.STOP_NAVIGATION"
+        private const val ACTION_TIMEOUT = "com.askew137.gcwatch.wear.NAVIGATION_TIMEOUT"
+
+        private fun timeoutIntent(context: Context) = android.app.PendingIntent.getService(
+            context, 2,
+            Intent(context, NavigationService::class.java).setAction(ACTION_TIMEOUT),
+            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
+        /** The app is in front again: the countdown stops. */
+        fun cancelTimeout(context: Context) {
+            context.getSystemService(android.app.AlarmManager::class.java).cancel(timeoutIntent(context))
+        }
+
+        /**
+         * The app went to the background: after the time chosen in the settings the service stops itself, so a
+         * forgotten GPS does not drain the battery. An alarm (not a timer thread) so that sleep does not delay it.
+         */
+        fun startTimeout(context: Context) {
+            val hours = com.askew137.gcwatch.wear.ui.UiPrefs.serviceTimeoutHours(context)
+            if (hours <= 0) return cancelTimeout(context)
+            val testS = com.askew137.gcwatch.wear.BuildConfig.SERVICE_TIMEOUT_TEST_S
+            val at = android.os.SystemClock.elapsedRealtime() + if (testS > 0) testS * 1000L else hours * 3_600_000L
+            context.getSystemService(android.app.AlarmManager::class.java)
+                .setAndAllowWhileIdle(android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP, at, timeoutIntent(context))
+        }
 
         fun start(context: Context) {
             androidx.core.content.ContextCompat.startForegroundService(

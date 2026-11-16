@@ -102,6 +102,11 @@ fun MapCanvas(
         // heading of h points at h + rotationDeg clockwise from the top of the screen.
         // The wearer's position on screen (rotated like the map); nothing is drawn without a fix.
         val mePos = meMap?.let { rotatePoint(it, center(size), rotationDeg) }
+        // Target outside the round screen: an arrow on the edge says which way it is.
+        if (target != null) {
+            val (tx, ty) = latLonToCanvas(target.lat, target.lon, center, zoomByte.toInt(), canvasW, canvasH)
+            drawOffscreenArrow(rotatePoint(Offset(tx, ty), center(size), rotationDeg), accentColor)
+        }
         if (mePos == null) return@Canvas
         if (headingDeg != null) {
             val c = mePos
@@ -286,6 +291,30 @@ private fun latLonToCanvas(
 }
 
 private fun center(size: Size) = Offset(size.width / 2, size.height / 2)
+
+/** An arrow at the screen edge pointing to [at] when that point is off the round screen; nothing when it is visible. */
+private fun DrawScope.drawOffscreenArrow(at: Offset, accentColor: Color) {
+    val c = center(size)
+    val edge = minOf(size.width, size.height) / 2 - 3.dp.toPx()
+    val dx = at.x - c.x
+    val dy = at.y - c.y
+    val dist = kotlin.math.hypot(dx, dy)
+    if (dist <= edge - 6.dp.toPx()) return // on the screen: the target marker is already visible
+    val ux = dx / dist
+    val uy = dy / dist
+    val tip = Offset(c.x + ux * edge, c.y + uy * edge)
+    val len = 16.dp.toPx()
+    val half = 9.dp.toPx()
+    val base = Offset(tip.x - ux * len, tip.y - uy * len)
+    val path = Path().apply {
+        moveTo(tip.x, tip.y)
+        lineTo(base.x - uy * half, base.y + ux * half)
+        lineTo(base.x + uy * half, base.y - ux * half)
+        close()
+    }
+    drawPath(path, Color.Black.copy(alpha = 0.85f), style = Stroke(width = 5.dp.toPx(), join = StrokeJoin.Round))
+    drawPath(path, accentColor)
+}
 
 /** [p] rotated clockwise by [degrees] around [pivot] (screen coordinates, y down). */
 private fun rotatePoint(p: Offset, pivot: Offset, degrees: Float): Offset {

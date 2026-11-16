@@ -191,19 +191,7 @@ class MapTransferService : Service() {
         }
     }
 
-    /** The phone's IPv4 address on Wi-Fi, or null when it is not on Wi-Fi. */
-    private fun lanAddress(): String? {
-        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return null
-        for (network in cm.allNetworks) {
-            val caps = cm.getNetworkCapabilities(network) ?: continue
-            if (!caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)) continue
-            val addr = cm.getLinkProperties(network)?.linkAddresses
-                ?.map { it.address }
-                ?.firstOrNull { it is java.net.Inet4Address && !it.isLoopbackAddress }
-            if (addr != null) return addr.hostAddress
-        }
-        return null
-    }
+    private fun lanAddress(): String? = LanAddress.find(this)
 
     /**
      * Offers the file to the watch as a local HTTP download. Returns true when this path has decided the
@@ -212,7 +200,7 @@ class MapTransferService : Service() {
      */
     private suspend fun viaWifi(file: File, total: Long, start: Long, nodeId: String, lan: String): Boolean {
         val name = file.name
-        val token = (1..16).map { "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789".random() }.joinToString("")
+        val token = LanAddress.token()
         val server = MapHttpServer(file, token)
         val stored = CompletableDeferred<String>().also { pendingStored = it }
         mode = "Wi-Fi"

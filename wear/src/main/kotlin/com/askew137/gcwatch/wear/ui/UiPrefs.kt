@@ -23,6 +23,11 @@ object UiPrefs {
     const val AMBIENT_GPS_MAX_S = 60
     const val AMBIENT_GPS_STEP_S = 5
 
+    private const val KEY_SERVICE_TIMEOUT_H = "service_timeout_hours"
+
+    /** Choices of "stop the navigation service after ... hours without opening the app"; 0 = never. */
+    val SERVICE_TIMEOUT_CHOICES_H = listOf(1, 2, 3, 4, 6, 8, 12, 0)
+
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun reaction(context: Context): HeadingReaction =
@@ -39,5 +44,13 @@ object UiPrefs {
 
     fun setAmbientGpsSeconds(context: Context, seconds: Int) {
         prefs(context).edit().putInt(KEY_AMBIENT_GPS_S, seconds).apply()
+    }
+
+    /** Hours the app may stay in the background (service running) before the service stops itself; 0 = never. */
+    fun serviceTimeoutHours(context: Context): Int =
+        prefs(context).getInt(KEY_SERVICE_TIMEOUT_H, 3).takeIf { it in SERVICE_TIMEOUT_CHOICES_H } ?: 3
+
+    fun setServiceTimeoutHours(context: Context, hours: Int) {
+        prefs(context).edit().putInt(KEY_SERVICE_TIMEOUT_H, hours).apply()
     }
 }

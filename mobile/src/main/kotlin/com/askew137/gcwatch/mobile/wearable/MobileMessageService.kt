@@ -40,6 +40,7 @@ class MobileMessageService : WearableListenerService() {
         when (event.path) {
             MessagePaths.ROUTE_REQUEST -> handleRouteRequest(event)
             MessagePaths.UPDATE_WEAR_RECEIVED -> AppUpdater.onWatchAck()
+            MessagePaths.UPDATE_HTTP_UNREACHABLE -> AppUpdater.onWatchLanFailed(String(event.data, Charsets.UTF_8))
             MessagePaths.VERSION_RESULT -> WatchVersion.onResult(event.data)
             MessagePaths.CONFIG_SYNC   -> handleConfigSync(event)
             MapTransferProtocol.RESUME_ANSWER -> MapTransferService.onResumeAnswer(event.data)
