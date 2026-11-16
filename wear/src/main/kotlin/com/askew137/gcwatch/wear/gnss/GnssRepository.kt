@@ -18,6 +18,9 @@ import timber.log.Timber
 
 private const val PHONE_TIMEOUT_MS = 10_000L
 
+/** Fix interval (seconds) in the saving mode when the target is near. */
+private const val APPROACH_INTERVAL_S = 3
+
 /**
  * Process-wide GPS source: arbitrates between [GpsSource.WATCH_HARDWARE] and
  * [GpsSource.PHONE_FUSED], automatically falling back to hardware if phone location
@@ -47,6 +50,9 @@ class GnssRepository(private val context: Context) {
 
     /** False while the screen is off / the app is in the background: nobody looks at the map. */
     private var uiVisible = true
+
+    /** Close to the target: while dimmed / screen off, ask for a fix every [APPROACH_INTERVAL_S] s instead of the slow interval. */
+    private var approaching = false
 
     private val owners = mutableSetOf<String>()
     private val running get() = owners.isNotEmpty()
@@ -79,6 +85,16 @@ class GnssRepository(private val context: Context) {
         if (uiVisible == value) return
         uiVisible = value
         refreshInterval()
+    }
+
+    /**
+     * The wearer is within about 100 m of the target (see [com.askew137.gcwatch.wear.navigation.ArrivalMonitor]): in the
+     * saving mode the GPS is asked more often, so the arrival is noticed before walking past the cache.
+     */
+    fun setApproaching(value: Boolean) {
+        if (approaching == value) return
+        approaching = value
+        if (ambient || !uiVisible) refreshInterval() // with the screen on the interval is already 1 s
     }
 
     /** The location permission was granted (or revoked) after the repository started. */
@@ -125,7 +141,8 @@ class GnssRepository(private val context: Context) {
 
         // Fix interval of the watch GPS: every second normally, every few seconds while dimmed / screen off.
         val lowPower = ambient || !uiVisible
-        val intervalMs = if (lowPower) com.askew137.gcwatch.wear.ui.UiPrefs.ambientGpsSeconds(context) * 1_000L else 1_000L
+        val slowS = com.askew137.gcwatch.wear.ui.UiPrefs.ambientGpsSeconds(context)
+        val intervalMs = if (lowPower) (if (approaching) minOf(slowS, APPROACH_INTERVAL_S) else slowS) * 1_000L else 1_000L
         activeJob = scope.launch {
             @Suppress("MissingPermission")
             hardwareManager.locationFlow(intervalMs = intervalMs).collect { loc ->
