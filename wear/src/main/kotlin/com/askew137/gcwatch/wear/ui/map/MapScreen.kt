@@ -48,7 +48,6 @@ import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Route
 import com.askew137.gcwatch.core.model.AppConfig
 import com.askew137.gcwatch.core.model.ComputedRoute
-import com.askew137.gcwatch.core.model.GpsSource
 import com.askew137.gcwatch.core.model.Waypoint
 import com.askew137.gcwatch.wear.ui.theme.toComposeColor
 import com.askew137.gcwatch.wear.gnss.GnssRepository
@@ -121,7 +120,6 @@ fun MapScreen(
             lineHint = null
         }
     }
-    val gnssSource by gnssRepository.source.collectAsStateWithLifecycle()
 
     val accentColor = remember(config.accentColor) { config.accentColor.toComposeColor() }
 
@@ -329,12 +327,6 @@ fun MapScreen(
                 selectedMaps = selectedMaps,
                 automaticMapSelection = automaticMapSelection,
                 onConfigChange = onConfigChange,
-                gpsSource = gnssSource,
-                onGpsSourceChange = {
-                    gnssRepository.switchSource(it)
-                    // Remember the user's choice (a temporary fallback to the watch GPS does not).
-                    onConfigChange(config.copy(gpsSource = it))
-                },
                 reaction = reaction,
                 onReactionChange = {
                     reaction = it

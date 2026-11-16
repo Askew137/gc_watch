@@ -23,6 +23,11 @@ class WearApplication : Application() {
         com.askew137.gcwatch.wear.gnss.GnssRepository(this)
     }
 
+    /** Buzzes (and can ask the UI for the compass) when the wearer reaches the target. */
+    val arrivalMonitor: com.askew137.gcwatch.wear.navigation.ArrivalMonitor by lazy {
+        com.askew137.gcwatch.wear.navigation.ArrivalMonitor(this)
+    }
+
     /** A newer watch APK that the phone sent; the UI offers to install it. */
     val pendingUpdate = MutableStateFlow<File?>(null)
 
@@ -35,6 +40,7 @@ class WearApplication : Application() {
             Timber.plant(Timber.DebugTree())
         }
         restorePendingUpdate()
+        arrivalMonitor.start()
         Thread { com.askew137.gcwatch.wear.navigation.MapReceiver(this).cleanupStale() }.start()
     }
 

@@ -46,7 +46,6 @@ import androidx.wear.compose.material.ToggleChip
 import androidx.wear.compose.material.ToggleChipDefaults
 import com.askew137.gcwatch.core.model.AccentColor
 import com.askew137.gcwatch.core.model.AppConfig
-import com.askew137.gcwatch.core.model.GpsSource
 import com.askew137.gcwatch.core.model.ThemeMode
 import com.askew137.gcwatch.core.model.Units
 import com.askew137.gcwatch.wear.ui.theme.toComposeColor
@@ -66,8 +65,6 @@ fun BottomMenuSheet(
     selectedMaps: List<File>,
     automaticMapSelection: Boolean,
     onConfigChange: (AppConfig) -> Unit,
-    gpsSource: GpsSource,
-    onGpsSourceChange: (GpsSource) -> Unit,
     reaction: com.askew137.gcwatch.wear.ui.HeadingReaction,
     onReactionChange: (com.askew137.gcwatch.wear.ui.HeadingReaction) -> Unit,
     ambientGpsSeconds: Int,
@@ -136,8 +133,6 @@ fun BottomMenuSheet(
                 2 -> OstatniTab(
                     config = config,
                     onConfigChange = onConfigChange,
-                    gpsSource = gpsSource,
-                    onGpsSourceChange = onGpsSourceChange,
                     reaction = reaction,
                     onReactionChange = onReactionChange,
                     ambientGpsSeconds = ambientGpsSeconds,
@@ -335,8 +330,6 @@ private fun GivenThemeTab(
 private fun OstatniTab(
     config: AppConfig,
     onConfigChange: (AppConfig) -> Unit,
-    gpsSource: GpsSource,
-    onGpsSourceChange: (GpsSource) -> Unit,
     reaction: com.askew137.gcwatch.wear.ui.HeadingReaction,
     onReactionChange: (com.askew137.gcwatch.wear.ui.HeadingReaction) -> Unit,
     ambientGpsSeconds: Int,
@@ -370,23 +363,6 @@ private fun OstatniTab(
             }
         }
         Spacer(Modifier.height(6.dp))
-        val phone = gpsSource == GpsSource.PHONE_FUSED
-        ToggleChip(
-            checked = phone,
-            onCheckedChange = {
-                onGpsSourceChange(if (it) GpsSource.PHONE_FUSED else GpsSource.WATCH_HARDWARE)
-            },
-            label = { Text("GPS z telefonu", fontSize = 11.sp, maxLines = 1) },
-            secondaryLabel = {
-                Text(if (phone) "telefon" else "hodinky", fontSize = 9.sp, color = Color.Gray)
-            },
-            toggleControl = { Switch(checked = phone) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ToggleChipDefaults.toggleChipColors(
-                checkedStartBackgroundColor = Color.Transparent,
-                checkedEndBackgroundColor = Color.Transparent,
-            ),
-        )
         Spacer(Modifier.height(8.dp))
         // Cone reaction: three positions (fast / normal / frugal), shown from slow to fast.
         val reactions = com.askew137.gcwatch.wear.ui.HeadingReaction.entries.reversed() // ECO, NORMAL, FAST

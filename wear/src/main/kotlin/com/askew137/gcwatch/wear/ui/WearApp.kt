@@ -50,11 +50,6 @@ fun WearApp(
     val routePending by navigationViewModel.routePending.collectAsStateWithLifecycle()
     val routeRequestNeeded by navigationViewModel.routeRequestNeeded.collectAsStateWithLifecycle()
 
-    // Apply the saved GPS source once at start (the repository always begins with the watch GPS).
-    LaunchedEffect(Unit) {
-        if (config.gpsSource != gnssRepository.source.value) gnssRepository.switchSource(config.gpsSource)
-    }
-
     // Ask the phone for the route as soon as there is a target AND a GPS fix, so it is ready
     // before the user switches to it. Re-keyed only when the need or the first fix changes.
     val hasFix = location != null
@@ -75,6 +70,18 @@ fun WearApp(
 
     GcWatchTheme(config = config) {
         val navController = rememberSwipeDismissableNavController()
+
+        // The wearer reached the cache and "switch to the compass" is on: show the compass (also when the
+        // arrival happened while the screen was off - the request waits until the app is shown).
+        val context0 = LocalContext.current
+        val arrivalMonitor = (context0.applicationContext as WearApplication).arrivalMonitor
+        val compassRequested by arrivalMonitor.pendingCompass.collectAsStateWithLifecycle()
+        LaunchedEffect(compassRequested) {
+            if (compassRequested) {
+                if (navController.currentDestination?.route != DEST_COMPASS) navController.navigate(DEST_COMPASS)
+                arrivalMonitor.consumeCompass()
+            }
+        }
 
         if (isAmbient) {
             // Dimmed, minimal screen; the map is not drawn at all while ambient.

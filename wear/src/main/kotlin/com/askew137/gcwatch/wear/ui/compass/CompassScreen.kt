@@ -21,6 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material.Icon
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.askew137.gcwatch.wear.ui.UiPrefs
 import com.askew137.gcwatch.wear.ui.components.IconButton
 import androidx.wear.compose.material.Text
 import androidx.compose.material.icons.Icons
@@ -28,9 +32,9 @@ import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Abc
 import androidx.compose.material.icons.rounded.Map
-import androidx.compose.material.icons.rounded.SatelliteAlt
+import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.OutlinedFlag
 import com.askew137.gcwatch.core.model.AppConfig
-import com.askew137.gcwatch.core.model.GpsSource
 import com.askew137.gcwatch.core.model.NavigationTarget
 import com.askew137.gcwatch.core.model.Units
 import com.askew137.gcwatch.wear.ui.theme.toComposeColor
@@ -61,7 +65,6 @@ fun CompassScreen(
     val showCardinals by compassViewModel.showCardinals.collectAsStateWithLifecycle()
     val keepScreenOn by compassViewModel.keepScreenOn.collectAsStateWithLifecycle()
     val view = LocalView.current
-    val gnssSource by gnssRepository.source.collectAsStateWithLifecycle()
 
     val accentColor = remember(config.accentColor) { config.accentColor.toComposeColor() }
     val targetBearing = navigationTarget?.bearingDeg ?: 0f
@@ -105,12 +108,20 @@ fun CompassScreen(
             )
         }
 
-        // ── Left edge: GPS source toggle ──────────────────────────────────────
+        // ── Left edge: switch to the compass by itself when I reach the cache (on/off) ──────────
+        var autoCompass by remember { mutableStateOf(UiPrefs.autoCompassAtTarget(context)) }
+        var hint by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(hint) {
+            if (hint != null) {
+                kotlinx.coroutines.delay(1800)
+                hint = null
+            }
+        }
         IconButton(
             onClick = {
-                val newSrc = if (gnssSource == GpsSource.WATCH_HARDWARE) GpsSource.PHONE_FUSED
-                            else GpsSource.WATCH_HARDWARE
-                gnssRepository.switchSource(newSrc)
+                autoCompass = !autoCompass
+                UiPrefs.setAutoCompassAtTarget(context, autoCompass)
+                hint = if (autoCompass) "U keše přepnout na kompas: zap" else "U keše přepnout na kompas: vyp"
             },
             modifier = Modifier
                 .align(Alignment.CenterStart)
@@ -120,9 +131,22 @@ fun CompassScreen(
                 .background(Color.Black.copy(alpha = 0.55f), CircleShape),
         ) {
             Icon(
-                Icons.Rounded.SatelliteAlt,
-                contentDescription = "GPS zdroj", modifier = Modifier.size(20.dp),
-                tint = if (gnssSource == GpsSource.WATCH_HARDWARE) accentColor else Color.Gray,
+                if (autoCompass) Icons.Rounded.Flag else Icons.Rounded.OutlinedFlag,
+                contentDescription = "Automaticky na kompas u keše", modifier = Modifier.size(20.dp),
+                tint = if (autoCompass) accentColor else Color.Gray,
+            )
+        }
+        hint?.let {
+            Text(
+                text = it,
+                fontSize = 11.sp,
+                color = Color.White,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 40.dp)
+                    .background(Color.Black.copy(alpha = 0.75f), androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
 

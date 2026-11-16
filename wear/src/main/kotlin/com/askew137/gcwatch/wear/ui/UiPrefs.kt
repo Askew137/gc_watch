@@ -24,6 +24,7 @@ object UiPrefs {
     const val AMBIENT_GPS_STEP_S = 5
 
     private const val KEY_SERVICE_TIMEOUT_H = "service_timeout_hours"
+    private const val KEY_AUTO_COMPASS = "auto_compass_at_target"
 
     /** Choices of "stop the navigation service after ... hours without opening the app"; 0 = never. */
     val SERVICE_TIMEOUT_CHOICES_H = listOf(1, 2, 3, 4, 6, 8, 12, 0)
@@ -52,5 +53,12 @@ object UiPrefs {
 
     fun setServiceTimeoutHours(context: Context, hours: Int) {
         prefs(context).edit().putInt(KEY_SERVICE_TIMEOUT_H, hours).apply()
+    }
+
+    /** Switch to the compass by itself when the wearer reaches the target (default on). */
+    fun autoCompassAtTarget(context: Context): Boolean = prefs(context).getBoolean(KEY_AUTO_COMPASS, true)
+
+    fun setAutoCompassAtTarget(context: Context, on: Boolean) {
+        prefs(context).edit().putBoolean(KEY_AUTO_COMPASS, on).apply()
     }
 }
