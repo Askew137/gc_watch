@@ -48,7 +48,6 @@ import com.askew137.gcwatch.mobile.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.askew137.gcwatch.core.model.AccentColor
-import com.askew137.gcwatch.core.model.GpsSource
 import com.askew137.gcwatch.core.model.ThemeMode
 import com.askew137.gcwatch.core.model.Units
 import com.askew137.gcwatch.mobile.ui.theme.toComposeColor
@@ -157,29 +156,32 @@ fun SettingsScreen(
             SettingsCard(title = stringResource(R.string.language_title)) {
                 val context = androidx.compose.ui.platform.LocalContext.current
                 var language by remember { androidx.compose.runtime.mutableStateOf(AppLanguage.current(context)) }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    AppLanguage.TAGS.forEach { tag ->
-                        FilterChip(
-                            selected = language == tag,
-                            onClick = {
-                                language = tag
-                                (context as? android.app.Activity)?.let { AppLanguage.set(it, tag) }
-                            },
-                            label = {
-                                Text(
-                                    when (tag) {
-                                        "cs" -> stringResource(R.string.language_cs)
-                                        "en" -> stringResource(R.string.language_en)
-                                        "de" -> stringResource(R.string.language_de)
-                                        else -> stringResource(R.string.language_system)
-                                    },
-                                    maxLines = 1,
-                                )
-                            },
-                        )
+                AppLanguage.TAGS.chunked(2).forEach { pair ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        pair.forEach { tag ->
+                            FilterChip(
+                                selected = language == tag,
+                                onClick = {
+                                    language = tag
+                                    (context as? android.app.Activity)?.let { AppLanguage.set(it, tag) }
+                                },
+                                label = {
+                                    Text(
+                                        when (tag) {
+                                            "cs" -> stringResource(R.string.language_cs)
+                                            "en" -> stringResource(R.string.language_en)
+                                            "de" -> stringResource(R.string.language_de)
+                                            else -> stringResource(R.string.language_system)
+                                        },
+                                        maxLines = 1,
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
             }
@@ -201,40 +203,6 @@ fun SettingsScreen(
                         onClick  = { viewModel.updateConfig(config.copy(units = Units.IMPERIAL)) },
                         label    = { Text(stringResource(R.string.units_imperial)) },
                         modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-
-            // ── GPS source ────────────────────────────────────────────────────
-            SettingsCard(title = stringResource(R.string.settings_gps)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.settings_use_phone_gps),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            stringResource(R.string.settings_gps_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(
-                        checked  = config.gpsSource == GpsSource.PHONE_FUSED,
-                        onCheckedChange = { usePhone ->
-                            viewModel.updateConfig(
-                                config.copy(
-                                    gpsSource = if (usePhone) GpsSource.PHONE_FUSED
-                                                else GpsSource.WATCH_HARDWARE
-                                )
-                            )
-                        },
-                        modifier = Modifier.padding(start = 12.dp),
                     )
                 }
             }

@@ -56,9 +56,6 @@
     <string name="settings_units">Entfernungseinheiten</string>
     <string name="units_metric">Metrisch (km)</string>
     <string name="units_imperial">Imperial (mi)</string>
-    <string name="settings_gps">GPS-Quelle</string>
-    <string name="settings_use_phone_gps">GPS des Telefons verwenden</string>
-    <string name="settings_gps_desc">Phone Fused liefert die Position per Bluetooth an die Uhr; Watch Hardware nutzt das eigene GPS der Uhr.</string>
 
     <!-- Maps screen -->
     <string name="maps_remove_title">%1$s vom Telefon entfernen?</string>

@@ -58,9 +58,6 @@
     <string name="settings_units">Distance Units</string>
     <string name="units_metric">Metric (km)</string>
     <string name="units_imperial">Imperial (mi)</string>
-    <string name="settings_gps">GPS Source</string>
-    <string name="settings_use_phone_gps">Use phone GPS</string>
-    <string name="settings_gps_desc">Phone Fused provides location via BT to watch; Watch Hardware uses the watch\'s own GPS.</string>
 
     <!-- Maps screen -->
     <string name="maps_remove_title">Remove %1$s from the phone?</string>

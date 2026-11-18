@@ -56,9 +56,6 @@
     <string name="settings_units">Jednotky vzdálenosti</string>
     <string name="units_metric">Metrické (km)</string>
     <string name="units_imperial">Imperiální (mi)</string>
-    <string name="settings_gps">Zdroj GPS</string>
-    <string name="settings_use_phone_gps">Používat GPS telefonu</string>
-    <string name="settings_gps_desc">Phone Fused posílá polohu do hodinek přes Bluetooth; Watch Hardware používá vlastní GPS hodinek.</string>
 
     <!-- Maps screen -->
     <string name="maps_remove_title">Odebrat %1$s z telefonu?</string>
