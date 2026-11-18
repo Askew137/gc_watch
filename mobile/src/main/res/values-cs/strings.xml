@@ -176,4 +176,6 @@
     <string name="geo_not_connected">GC Watch: hodinky nejsou připojeny, cíl nebyl odeslán</string>
     <string name="geo_sent">Odesláno do hodinek: %1$s</string>
     <string name="geo_failed">GC Watch: odeslání do hodinek selhalo (%1$s)</string>
+    <string name="language_title">Jazyk</string>
+    <string name="language_system">Podle systému</string>
 </resources>

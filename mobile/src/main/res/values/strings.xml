@@ -176,4 +176,9 @@
     <string name="geo_not_connected">GC Watch: the watch is not connected, target not sent</string>
     <string name="geo_sent">Sent to the watch: %1$s</string>
     <string name="geo_failed">GC Watch: sending to the watch failed (%1$s)</string>
+    <string name="language_title">Language</string>
+    <string name="language_system">System default</string>
+    <string name="language_cs" translatable="false">Čeština</string>
+    <string name="language_en" translatable="false">English</string>
+    <string name="language_de" translatable="false">Deutsch</string>
 </resources>

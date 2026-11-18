@@ -80,4 +80,9 @@
     <string name="cd_longer">Longer</string>
     <string name="cd_sooner">Sooner</string>
     <string name="version_label">GC Watch v%1$s (%2$d)</string>
+    <string name="language_title">Language</string>
+    <string name="language_system">System</string>
+    <string name="language_cs" translatable="false">Čeština</string>
+    <string name="language_en" translatable="false">English</string>
+    <string name="language_de" translatable="false">Deutsch</string>
 </resources>

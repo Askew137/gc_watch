@@ -24,6 +24,10 @@ import timber.log.Timber
 
 class WearMainActivity : ComponentActivity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
+
     // Single-instance engine/repo – in a production app these would be injected via Hilt
     private lateinit var mapEngine: MapEngineService
     private lateinit var gnssRepository: GnssRepository

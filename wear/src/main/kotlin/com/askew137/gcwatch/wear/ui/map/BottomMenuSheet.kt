@@ -409,6 +409,44 @@ private fun OstatniTab(
             steps = choices.size - 2,
         )
         Text(stringResource(R.string.service_timeout_note), fontSize = 9.sp, color = Color.Gray)
+        Spacer(Modifier.height(8.dp))
+        val langContext = androidx.compose.ui.platform.LocalContext.current
+        var language by androidx.compose.runtime.remember {
+            androidx.compose.runtime.mutableStateOf(com.askew137.gcwatch.wear.ui.AppLanguage.current(langContext))
+        }
+        Text(stringResource(R.string.language_title), fontSize = 11.sp, color = Color.White)
+        com.askew137.gcwatch.wear.ui.AppLanguage.TAGS.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { tag ->
+                    Chip(
+                        onClick = {
+                            language = tag
+                            (langContext as? android.app.Activity)?.let { com.askew137.gcwatch.wear.ui.AppLanguage.set(it, tag) }
+                        },
+                        label = {
+                            Text(
+                                text = stringResource(
+                                    when (tag) {
+                                        "cs" -> R.string.language_cs
+                                        "en" -> R.string.language_en
+                                        "de" -> R.string.language_de
+                                        else -> R.string.language_system
+                                    }
+                                ),
+                                fontSize = 10.sp, maxLines = 1,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        },
+                        colors = ChipDefaults.chipColors(
+                            backgroundColor = if (language == tag) MaterialTheme.colors.primary.copy(alpha = 0.3f) else Color.DarkGray,
+                        ),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+        }
         Spacer(Modifier.height(10.dp))
         Text(
             stringResource(R.string.version_label, com.askew137.gcwatch.wear.BuildConfig.VERSION_NAME, com.askew137.gcwatch.wear.BuildConfig.VERSION_CODE),

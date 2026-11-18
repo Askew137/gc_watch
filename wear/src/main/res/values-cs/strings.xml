@@ -72,4 +72,6 @@
     <string name="cd_longer">Déle</string>
     <string name="cd_sooner">Dříve</string>
     <string name="version_label">GC Watch v%1$s (%2$d)</string>
+    <string name="language_title">Jazyk</string>
+    <string name="language_system">Systém</string>
 </resources>

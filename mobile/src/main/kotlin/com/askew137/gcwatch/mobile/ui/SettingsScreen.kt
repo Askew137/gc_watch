@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -149,6 +150,37 @@ fun SettingsScreen(
                         label = { Text(stringResource(R.string.theme_night_red)) },
                         modifier = Modifier.weight(1f),
                     )
+                }
+            }
+
+            // ── Language ──────────────────────────────────────────────────────
+            SettingsCard(title = stringResource(R.string.language_title)) {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                var language by remember { androidx.compose.runtime.mutableStateOf(AppLanguage.current(context)) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AppLanguage.TAGS.forEach { tag ->
+                        FilterChip(
+                            selected = language == tag,
+                            onClick = {
+                                language = tag
+                                (context as? android.app.Activity)?.let { AppLanguage.set(it, tag) }
+                            },
+                            label = {
+                                Text(
+                                    when (tag) {
+                                        "cs" -> stringResource(R.string.language_cs)
+                                        "en" -> stringResource(R.string.language_en)
+                                        "de" -> stringResource(R.string.language_de)
+                                        else -> stringResource(R.string.language_system)
+                                    },
+                                    maxLines = 1,
+                                )
+                            },
+                        )
+                    }
                 }
             }
 

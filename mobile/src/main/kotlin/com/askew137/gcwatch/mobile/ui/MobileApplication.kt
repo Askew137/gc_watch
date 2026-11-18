@@ -9,6 +9,10 @@ import timber.log.Timber
 /** Application class – plants Timber tree and initialises global singletons. */
 class MobileApplication : Application() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
+
     /** Global config repository; held here so it lives as long as the process. */
     lateinit var configRepository: MobileConfigRepository
         private set

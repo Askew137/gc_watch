@@ -10,6 +10,10 @@ import java.io.File
 
 class WearApplication : Application() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.askew137.gcwatch.wear.ui.AppLanguage.wrap(newBase))
+    }
+
     /**
      * Process-wide singletons. The WearableListenerService (which receives messages from the
      * phone) and the UI ViewModels MUST share the same instances, otherwise incoming targets,
