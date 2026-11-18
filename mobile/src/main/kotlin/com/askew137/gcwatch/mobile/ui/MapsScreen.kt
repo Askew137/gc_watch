@@ -47,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.mobile.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -85,17 +87,14 @@ fun MapsScreen(
     fileToDelete?.let { file ->
         AlertDialog(
             onDismissRequest = { fileToDelete = null },
-            title = { Text("Remove ${file.name} from the phone?") },
+            title = { Text(stringResource(R.string.maps_remove_title, file.name)) },
             text = {
-                Text(
-                    "Only the phone's copy (${formatFileSize(file.length())}) is deleted. " +
-                        "A map already sent stays on the watch. You can add the file again later.",
-                )
+                Text(stringResource(R.string.maps_remove_text, formatFileSize(file.length())))
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteMapFile(file); fileToDelete = null }) { Text("Remove") }
+                TextButton(onClick = { viewModel.deleteMapFile(file); fileToDelete = null }) { Text(stringResource(R.string.action_remove)) }
             },
-            dismissButton = { TextButton(onClick = { fileToDelete = null }) { Text("Keep") } },
+            dismissButton = { TextButton(onClick = { fileToDelete = null }) { Text(stringResource(R.string.action_keep)) } },
         )
     }
 
@@ -103,10 +102,10 @@ fun MapsScreen(
         containerColor = Color.Black,
         topBar = {
             TopAppBar(
-                title = { Text("Maps & Routing", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.maps_routing_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -128,10 +127,10 @@ fun MapsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // ── Map files section ─────────────────────────────────────────────
-            SectionHeader("Map files (.map)")
+            SectionHeader(stringResource(R.string.maps_files_header))
 
             if (mapFiles.isEmpty()) {
-                EmptyHint("No .map files yet. Add one below.")
+                EmptyHint(stringResource(R.string.maps_empty))
             } else {
                 mapFiles.forEach { file ->
                     MapFileCard(
@@ -173,7 +172,7 @@ fun MapsScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add map file")
+                Text(stringResource(R.string.maps_add))
             }
 
             // Copy progress
@@ -186,7 +185,7 @@ fun MapsScreen(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    "Copying ${progress.fileName}…",
+                    stringResource(R.string.maps_copying, progress.fileName),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -199,7 +198,7 @@ fun MapsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "Where to get map files",
+                        stringResource(R.string.maps_where),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
@@ -274,7 +273,7 @@ private fun MapFileCard(file: File, sendEnabled: Boolean, onSendToWatch: () -> U
                 if (file.length() > 1_000_000L) {
                     // Over Bluetooth alone a few MB can take very long; with Wi-Fi it is quick.
                     Text(
-                        "Fast when the phone and the watch are on the same Wi-Fi",
+                        stringResource(R.string.maps_wifi_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -282,10 +281,10 @@ private fun MapFileCard(file: File, sendEnabled: Boolean, onSendToWatch: () -> U
             }
             Column(horizontalAlignment = Alignment.End) {
                 Button(onClick = onSendToWatch, enabled = sendEnabled) {
-                    Text("Send to watch")
+                    Text(stringResource(R.string.maps_send))
                 }
                 TextButton(onClick = onRemove) {
-                    Text("Remove from phone", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.action_remove_from_phone), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -316,8 +315,8 @@ private fun RoutingForMap(
     if (missing.isEmpty()) {
         val have = tiles.filter { it in installedTiles }
         Text(
-            if (have.isNotEmpty()) "Routes: ready (${have.joinToString(", ")})"
-            else "Routes: no routing data exists for this area (sea or not covered)",
+            if (have.isNotEmpty()) stringResource(R.string.maps_routes_ready, have.joinToString(", "))
+            else stringResource(R.string.maps_routes_none),
             style = MaterialTheme.typography.bodySmall,
             color = if (have.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -328,19 +327,25 @@ private fun RoutingForMap(
     val busy = downloading != null || queued > 0
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            "Routes need ${missing.size} data " + (if (missing.size == 1) "tile" else "tiles") +
-                " (${missing.joinToString(", ")})" + if (allKnown && total > 0) ", ${formatFileSize(total)}" else "",
+            LocalContext.current.resources.getQuantityString(
+                R.plurals.maps_routes_need, missing.size, missing.size, missing.joinToString(", "),
+                if (allKnown && total > 0) ", ${formatFileSize(total)}" else "",
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (busy && downloading in missing) {
             Text(
-                "Downloading $downloading…" + if (queued > 0) " ($queued more waiting)" else "",
+                if (queued > 0) stringResource(R.string.maps_downloading_tile_queued, downloading!!, queued)
+                else stringResource(R.string.maps_downloading_tile, downloading!!),
                 style = MaterialTheme.typography.bodySmall,
             )
         } else {
             OutlinedButton(onClick = { onDownload(missing) }, enabled = !busy) {
-                Text("Download routing data" + if (allKnown && total > 0) " (${formatFileSize(total)})" else "")
+                Text(
+                    if (allKnown && total > 0) stringResource(R.string.maps_download_routing_size, formatFileSize(total))
+                    else stringResource(R.string.maps_download_routing),
+                )
             }
             if (error != null && missing.any { error.contains(it) }) {
                 Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -391,10 +396,9 @@ private fun RoutingDataSection(viewModel: MobileViewModel) {
     val sizes by viewModel.segmentRemoteSizes.collectAsState()
 
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-    SectionHeader("Navigation data (routes)")
+    SectionHeader(stringResource(R.string.maps_nav_header))
     Text(
-        "Routes on foot are computed on the phone from BRouter data. Download the tiles for " +
-            "the areas you play in. Only the phone needs them – nothing is sent to the watch.",
+        stringResource(R.string.maps_nav_desc),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -409,13 +413,16 @@ private fun RoutingDataSection(viewModel: MobileViewModel) {
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    "The last route needs data that is not installed: $missingTile",
+                    stringResource(R.string.maps_missing_tile, missingTile),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { viewModel.downloadSegment(missingTile) }, enabled = download == null) {
-                    Text("Download $missingTile" + (sizes[missingTile]?.let { " (${formatFileSize(it)})" } ?: ""))
+                    Text(
+                        sizes[missingTile]?.let { stringResource(R.string.maps_download_tile_size, missingTile, formatFileSize(it)) }
+                            ?: stringResource(R.string.maps_download_tile, missingTile),
+                    )
                 }
             }
         }
@@ -455,10 +462,11 @@ private fun RoutingDataSection(viewModel: MobileViewModel) {
                     Text(
                         when {
                             active != null && active.total > 0 ->
-                                "Downloading ${active.bytes * 100 / active.total} % (${formatFileSize(active.total)})"
-                            active != null -> "Downloading…"
-                            file != null -> "Installed, ${formatFileSize(file.length())}"
-                            else -> sizes[tile.name]?.let { "Not installed, ${formatFileSize(it)}" } ?: "Not installed"
+                                stringResource(R.string.maps_tile_downloading_pct, (active.bytes * 100 / active.total).toInt(), formatFileSize(active.total))
+                            active != null -> stringResource(R.string.maps_tile_downloading)
+                            file != null -> stringResource(R.string.maps_tile_installed, formatFileSize(file.length()))
+                            else -> sizes[tile.name]?.let { stringResource(R.string.maps_tile_not_installed_size, formatFileSize(it)) }
+                                ?: stringResource(R.string.maps_tile_not_installed)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -473,9 +481,9 @@ private fun RoutingDataSection(viewModel: MobileViewModel) {
                 }
                 when {
                     active != null -> Unit
-                    file != null -> OutlinedButton(onClick = { viewModel.deleteSegment(tile.name) }) { Text("Delete") }
+                    file != null -> OutlinedButton(onClick = { viewModel.deleteSegment(tile.name) }) { Text(stringResource(R.string.action_delete)) }
                     else -> Button(onClick = { viewModel.downloadSegment(tile.name) }, enabled = download == null) {
-                        Text("Download")
+                        Text(stringResource(R.string.action_download))
                     }
                 }
             }
@@ -487,7 +495,7 @@ private fun RoutingDataSection(viewModel: MobileViewModel) {
 
     downloadError?.let {
         Text(
-            "Download failed: $it",
+            stringResource(R.string.maps_download_failed, it),
             style = MaterialTheme.typography.bodySmall,
             color = Color.Red,
         )
@@ -518,57 +526,60 @@ private fun TransferCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             when (state) {
                 is MapTransferState.Working -> {
-                    Text("Sending ${state.fileName} to the watch", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.transfer_sending, state.fileName), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     when (state.phase) {
                         MapTransferState.Phase.ASKING_WATCH -> {
-                            Text("Asking the watch what it already has…", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.transfer_asking), style = MaterialTheme.typography.bodySmall)
                             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                         }
                         MapTransferState.Phase.SENDING -> {
                             LinearProgressIndicator(progress = { state.percent / 100f }, modifier = Modifier.fillMaxWidth())
                             Text(
-                                "${state.percent} %  ·  ${formatFileSize(state.sentBytes)} of ${formatFileSize(state.totalBytes)}",
+                                stringResource(R.string.transfer_progress, state.percent, formatFileSize(state.sentBytes), formatFileSize(state.totalBytes)),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                (if (state.bytesPerSec > 0) "${formatFileSize(state.bytesPerSec)}/s" else "measuring speed…") +
-                                    (state.secondsLeft?.let { "  ·  ${formatDuration(it)} left" } ?: ""),
+                                (if (state.bytesPerSec > 0) stringResource(R.string.transfer_speed, formatFileSize(state.bytesPerSec)) else stringResource(R.string.transfer_measuring)) +
+                                    (state.secondsLeft?.let { "  ·  " + stringResource(R.string.transfer_left, formatDuration(it)) } ?: ""),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
-                                if (state.mode == "Wi-Fi") "Over Wi-Fi: the watch downloads the file from the phone. If it breaks, Retry resumes."
-                                else "Over the slow Bluetooth link. " + state.note.ifBlank { "Put the phone and the watch on the same Wi-Fi to make it faster." },
+                                if (state.viaWifi) stringResource(R.string.transfer_wifi_info)
+                                else stringResource(
+                                    R.string.transfer_bt_info,
+                                    state.note.ifBlank { stringResource(R.string.transfer_bt_default_note) },
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }
                         MapTransferState.Phase.CONFIRMING -> {
-                            Text("Sent. Waiting for the watch to confirm the file…", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.transfer_confirming), style = MaterialTheme.typography.bodySmall)
                             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                         }
                     }
-                    OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                    OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
                 }
                 is MapTransferState.Done -> {
-                    Text("${state.fileName} is on the watch", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.transfer_done, state.fileName), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "Confirmed by the watch (${formatFileSize(state.totalBytes)}). You can remove the phone's copy to free space.",
+                        stringResource(R.string.transfer_done_detail, formatFileSize(state.totalBytes)),
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (phoneCopyExists(state.fileName)) {
-                            Button(onClick = { onRemoveFromPhone(state.fileName) }) { Text("Remove from phone") }
+                            Button(onClick = { onRemoveFromPhone(state.fileName) }) { Text(stringResource(R.string.action_remove_from_phone)) }
                         }
-                        OutlinedButton(onClick = onDismiss) { Text("OK") }
+                        OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.action_ok)) }
                     }
                 }
                 is MapTransferState.Failed -> {
-                    Text("Sending ${state.fileName} failed", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.transfer_failed, state.fileName), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(state.message, style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (phoneCopyExists(state.fileName)) {
-                            Button(onClick = { onRetry(state.fileName) }) { Text("Retry (resumes)") }
+                            Button(onClick = { onRetry(state.fileName) }) { Text(stringResource(R.string.transfer_retry)) }
                         }
-                        OutlinedButton(onClick = onDismiss) { Text("Dismiss") }
+                        OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.action_dismiss)) }
                     }
                 }
                 MapTransferState.Idle -> Unit
@@ -597,10 +608,9 @@ private fun OtherAreaCard(viewModel: MobileViewModel, installedNames: Set<String
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Another area", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.maps_other_title), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Text(
-                "Other country? Enter a place as coordinates (lat, lon, e.g. 48.2, 16.4 for Vienna) or a tile " +
-                    "name (e.g. E15_N45). Every tile is a 5°×5° square named by its south-west corner.",
+                stringResource(R.string.maps_other_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -608,21 +618,22 @@ private fun OtherAreaCard(viewModel: MobileViewModel, installedNames: Set<String
                 value = input,
                 onValueChange = { input = it },
                 singleLine = true,
-                label = { Text("48.2, 16.4  or  E15_N45") },
+                label = { Text(stringResource(R.string.maps_other_hint)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             if (input.isNotBlank() && tile == null) {
-                Text("Not a valid tile or coordinates.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.maps_other_invalid), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
             if (tile != null) {
                 val have = tile in installedNames
                 Text(
-                    if (have) "$tile is already installed."
-                    else "Tile $tile" + (sizes[tile]?.let { ", ${formatFileSize(it)}" } ?: ""),
+                    if (have) stringResource(R.string.maps_other_installed, tile)
+                    else sizes[tile]?.let { stringResource(R.string.maps_other_tile_size, tile, formatFileSize(it)) }
+                        ?: stringResource(R.string.maps_other_tile, tile),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 if (!have) {
-                    Button(onClick = { viewModel.downloadSegment(tile); input = "" }, enabled = !busy) { Text("Download $tile") }
+                    Button(onClick = { viewModel.downloadSegment(tile); input = "" }, enabled = !busy) { Text(stringResource(R.string.maps_download_tile, tile)) }
                 }
             }
         }

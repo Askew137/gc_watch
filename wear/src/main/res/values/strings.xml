@@ -1,4 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GC Watch</string>
+    <string name="app_name" translatable="false">GC Watch</string>
+
+    <!-- Notification -->
+    <string name="notif_channel_name">Navigation</string>
+    <string name="notif_running">Navigation running</string>
+    <string name="notif_action_quit">Quit</string>
+
+    <!-- Update prompt -->
+    <string name="update_title">New GC Watch version</string>
+    <string name="update_install">Install</string>
+    <string name="update_later">Later</string>
+    <string name="update_allow_hint">Allow installation: adb shell appops set %1$s REQUEST_INSTALL_PACKAGES allow</string>
+    <string name="update_failed">Installation failed: %1$s</string>
+
+    <!-- Exit dialog -->
+    <string name="exit_title">Quit GC Watch?</string>
+    <string name="exit_stay">Stay</string>
+    <string name="exit_quit">Quit</string>
+    <string name="exit_back_hint">Back again: to the watch face only, GPS keeps running.</string>
+
+    <!-- Compass screen -->
+    <string name="compass_auto_on">At the cache switch to compass: on</string>
+    <string name="compass_auto_off">At the cache switch to compass: off</string>
+    <string name="compass_auto_desc">Switch to compass at the cache</string>
+    <string name="cd_map">Map</string>
+    <string name="cd_cardinals">Cardinal directions</string>
+    <string name="cd_keep_screen_on">Keep screen on</string>
+    <string name="cardinal_n">N</string>
+    <string name="cardinal_e">E</string>
+    <string name="cardinal_s">S</string>
+    <string name="cardinal_w">W</string>
+
+    <!-- Map screen -->
+    <string name="cd_zoom_in">Zoom in</string>
+    <string name="cd_zoom_out">Zoom out</string>
+    <string name="line_none">No target</string>
+    <string name="line_air">Straight line</string>
+    <string name="line_route">Route</string>
+    <string name="line_target_routing">Target only (route is being calculated)</string>
+    <string name="line_target_no_route">Target only (no route available)</string>
+    <string name="line_target_only">Target only</string>
+    <string name="cd_target_line">Line to target</string>
+    <string name="cd_compass">Compass</string>
+    <string name="cd_align_heading">Align to heading</string>
+    <string name="cd_recenter_north">Recenter, north up</string>
+    <string name="gps_waiting">Waiting for GPS…</string>
+    <string name="gps_waiting_route">Waiting for GPS…\nthe route is calculated after the first fix</string>
+    <string name="cd_menu">Menu</string>
+
+    <!-- Menu sheet -->
+    <string name="tab_maps">Maps</string>
+    <string name="tab_look">Look</string>
+    <string name="tab_other">Other</string>
+    <string name="maps_auto">Auto by location</string>
+    <string name="maps_delete">Delete maps…</string>
+    <string name="maps_tick_to_delete">Tick maps to delete</string>
+    <string name="maps_confirm_delete">Really delete %1$d? (tap again)</string>
+    <string name="maps_delete_selected">Delete selected (%1$d)</string>
+    <string name="cancel">Cancel</string>
+    <string name="look_accent">Accent</string>
+    <string name="look_theme">Theme</string>
+    <string name="theme_normal">Normal</string>
+    <string name="theme_night">Night</string>
+    <string name="units_metric">Metres</string>
+    <string name="units_imperial">Miles</string>
+    <string name="reaction_fast">Fast</string>
+    <string name="reaction_normal">Normal</string>
+    <string name="reaction_eco">Economy</string>
+    <string name="reaction_label">Cone response: %1$s</string>
+    <string name="cd_faster">Faster</string>
+    <string name="cd_slower">Slower</string>
+    <string name="ambient_gps_label">GPS when screen off: every %1$d s</string>
+    <string name="cd_less_often">Less often</string>
+    <string name="cd_more_often">More often</string>
+    <string name="service_unlimited">Background service: unlimited</string>
+    <string name="service_timeout_label">Stop background GPS after %1$d h</string>
+    <string name="service_timeout_note">after leaving the app</string>
+    <string name="cd_longer">Longer</string>
+    <string name="cd_sooner">Sooner</string>
+    <string name="version_label">GC Watch v%1$s (%2$d)</string>
 </resources>

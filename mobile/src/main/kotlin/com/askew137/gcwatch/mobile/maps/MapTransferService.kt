@@ -10,6 +10,7 @@ import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import com.askew137.gcwatch.core.communication.MapTransferProtocol
+import com.askew137.gcwatch.mobile.R
 import com.google.android.gms.wearable.ChannelClient
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.CancellationException
@@ -49,10 +50,10 @@ sealed interface MapTransferState {
         val sentBytes: Long = 0,
         val totalBytes: Long = 0,
         val bytesPerSec: Long = 0,
-        /** Why Wi-Fi was not used, when the slow link is in use. */
+        /** Why Wi-Fi was not used, when the slow link is in use (already localized). */
         val note: String = "",
-        /** How the file travels: "Wi-Fi" (direct, fast) or "Bluetooth link" (the slow Data Layer channel). */
-        val mode: String = "",
+        /** How the file travels: true = Wi-Fi (direct, fast), false = Bluetooth link (the slow Data Layer channel). */
+        val viaWifi: Boolean = false,
     ) : MapTransferState {
         val percent: Int get() = if (totalBytes > 0) (sentBytes * 100 / totalBytes).toInt().coerceIn(0, 100) else 0
 
@@ -64,7 +65,7 @@ sealed interface MapTransferState {
     data class Done(val fileName: String, val totalBytes: Long) : MapTransferState
 
     /** Tapping "Retry" resumes where the watch stopped, not from the beginning. */
-    data class Failed(val fileName: String, val message: String) : MapTransferState
+    data class Failed(val fileName: String, val message: String /* already localized */) : MapTransferState
 
     enum class Phase { ASKING_WATCH, SENDING, CONFIRMING }
 }
@@ -101,13 +102,13 @@ class MapTransferService : Service() {
         val file = uriStr?.let { Uri.parse(it).path }?.let(::File)
         if (file == null || !file.isFile) {
             Timber.e("MapTransferService started without a usable file: %s", uriStr)
-            _state.value = MapTransferState.Failed(file?.name ?: "map", "The map file is missing on the phone")
-            startForeground(NOTIF_ID, notification(file?.name ?: "map", null, "Map transfer failed"))
+            _state.value = MapTransferState.Failed(file?.name ?: getString(R.string.map_default_name), getString(R.string.map_err_missing_file))
+            startForeground(NOTIF_ID, notification(file?.name ?: getString(R.string.map_default_name), null, getString(R.string.notif_map_failed)))
             stopSelf(startId)
             return START_NOT_STICKY
         }
 
-        startForeground(NOTIF_ID, notification(file.name, 0, "Sending map to the watch"))
+        startForeground(NOTIF_ID, notification(file.name, 0, getString(R.string.notif_map_sending)))
         if (job?.isActive == true) return START_NOT_STICKY // one transfer at a time
 
         job = scope.launch {
@@ -135,11 +136,11 @@ class MapTransferService : Service() {
     private suspend fun transfer(file: File) {
         val name = file.name
         val total = file.length()
-        if (!MapTransferProtocol.isSafeMapName(name)) error("The file name \"$name\" is not a valid .map name")
+        if (!MapTransferProtocol.isSafeMapName(name)) error(getString(R.string.map_err_bad_name, name))
         setWorking(name, MapTransferState.Phase.ASKING_WATCH, 0, total, 0)
 
         val node = Wearable.getNodeClient(this).connectedNodes.await().firstOrNull()
-            ?: return fail(name, "The watch is not connected")
+            ?: return fail(name, getString(R.string.map_err_not_connected))
         val messages = Wearable.getMessageClient(this)
 
         // 1. How much of this file does the watch already have?
@@ -152,9 +153,9 @@ class MapTransferService : Service() {
         }
         val offset = reply ?: return fail(
             name,
-            "The watch did not answer. Open GC Watch on the watch (it must run the same version as the phone) and try again.",
+            getString(R.string.map_err_no_answer),
         )
-        if (offset == MapTransferProtocol.NO_SPACE) return fail(name, "There is not enough free space on the watch for this map")
+        if (offset == MapTransferProtocol.NO_SPACE) return fail(name, getString(R.string.map_err_no_space))
         val start = if (offset in 1 until total) offset else 0L
         Timber.i("Sending %s: %d of %d bytes are already on the watch", name, start, total)
 
@@ -162,8 +163,8 @@ class MapTransferService : Service() {
         val lan = if (com.askew137.gcwatch.mobile.BuildConfig.LAN_TEST_HOST.isNotEmpty()) "test" else lanAddress()
         note = ""
         if (lan != null && viaWifi(file, total, start, node.id, lan)) return
-        mode = "Bluetooth link"
-        if (lan == null) note = "The phone is not connected to Wi-Fi (or it has no usable address)."
+        viaWifiMode = false
+        if (lan == null) note = getString(R.string.map_note_no_wifi)
         Timber.i("Wi-Fi download not possible (%s): using the Data Layer channel", if (lan == null) "no Wi-Fi on the phone" else "the watch could not reach the phone")
 
         // 2b. Slow path: stream through the Data Layer channel.
@@ -177,13 +178,13 @@ class MapTransferService : Service() {
             // 3. The watch says when the complete file is in place.
             setWorking(name, MapTransferState.Phase.CONFIRMING, total, total, 0)
             val result = withTimeoutOrNull(CONFIRM_TIMEOUT_MS) { stored.await() }
-                ?: return fail(name, "The watch did not confirm the file. Open GC Watch on the watch and tap Retry (it resumes).")
+                ?: return fail(name, getString(R.string.map_err_no_confirm))
             if (result == "ok") {
                 Timber.i("Map transfer complete: %s", name)
                 if (!cancelled()) _state.value = MapTransferState.Done(name, total)
-                finishNotification(name, "Map sent to the watch")
+                finishNotification(name, getString(R.string.notif_map_sent))
             } else {
-                fail(name, "The file did not arrive completely. Tap Retry: it resumes where it stopped.")
+                fail(name, getString(R.string.map_err_incomplete))
             }
         } finally {
             pendingStored = null
@@ -203,7 +204,7 @@ class MapTransferService : Service() {
         val token = LanAddress.token()
         val server = MapHttpServer(file, token)
         val stored = CompletableDeferred<String>().also { pendingStored = it }
-        mode = "Wi-Fi"
+        viaWifiMode = true
         try {
             val testHost = com.askew137.gcwatch.mobile.BuildConfig.LAN_TEST_HOST
             val port = server.start(testHost.substringAfter(':', "0").toIntOrNull() ?: 0)
@@ -223,7 +224,7 @@ class MapTransferService : Service() {
                 delay(500)
                 val now = SystemClock.elapsedRealtime()
                 if (!server.contacted && now - began > WIFI_CONNECT_MS) {
-                    note = "Wi-Fi not used: the watch did not connect to ${lan}:$port within ${WIFI_CONNECT_MS / 1000} s (different network, or the router isolates devices)."
+                    note = getString(R.string.map_note_no_connect, "$lan:$port", (WIFI_CONNECT_MS / 1000).toInt())
                     return false
                 }
                 val served = server.servedUpTo.get().coerceAtLeast(start)
@@ -236,10 +237,10 @@ class MapTransferService : Service() {
                     setWorking(name, MapTransferState.Phase.CONFIRMING, total, total, 0)
                 } else {
                     setWorking(name, MapTransferState.Phase.SENDING, served, total, speed)
-                    notify(name, (served * 100 / total).toInt(), "Sending map to the watch")
+                    notify(name, (served * 100 / total).toInt(), getString(R.string.notif_map_sending))
                     val idle = System.nanoTime() / 1_000_000 - server.lastActivityMs.get()
                     if (server.contacted && idle > STALL_MS) {
-                        fail(name, "No data moved for ${STALL_MS / 1000} s over Wi-Fi. Make sure the watch is on the same Wi-Fi and awake, then tap Retry (it resumes).")
+                        fail(name, getString(R.string.map_err_stall_wifi, (STALL_MS / 1000).toInt()))
                         return true
                     }
                 }
@@ -249,15 +250,15 @@ class MapTransferService : Service() {
                 "ok" -> {
                     Timber.i("Map transfer complete over Wi-Fi: %s", name)
                     if (!cancelled()) _state.value = MapTransferState.Done(name, total)
-                    finishNotification(name, "Map sent to the watch")
+                    finishNotification(name, getString(R.string.notif_map_sent))
                     true
                 }
-                null -> { fail(name, "The watch did not confirm the file. Open GC Watch on the watch and tap Retry (it resumes)."); true }
+                null -> { fail(name, getString(R.string.map_err_no_confirm)); true }
                 else -> if (result.startsWith("unreachable")) {
-                    note = "Wi-Fi not used: " + (result.removePrefix("unreachable").removePrefix(":").ifBlank { "the watch could not reach the phone" })
+                    note = getString(R.string.map_note_wifi_reason, result.removePrefix("unreachable").removePrefix(":").ifBlank { getString(R.string.map_note_unreachable) })
                     false
                 } else {
-                    fail(name, "The file did not arrive completely. Tap Retry: it resumes where it stopped.")
+                    fail(name, getString(R.string.map_err_incomplete))
                     true
                 }
             }
@@ -299,7 +300,7 @@ class MapTransferService : Service() {
                             var skipped = 0L
                             while (skipped < start) {
                                 val n = input.skip(start - skipped)
-                                if (n <= 0) throw IOException("cannot seek in ${file.name}")
+                                if (n <= 0) throw IOException(getString(R.string.map_err_seek, file.name))
                                 skipped += n
                             }
                             val buffer = ByteArray(BUFFER)
@@ -330,7 +331,7 @@ class MapTransferService : Service() {
                                 if (now - lastUi >= UI_INTERVAL_MS) {
                                     lastUi = now
                                     setWorking(name, MapTransferState.Phase.SENDING, sent, total, speed)
-                                    notify(name, (sent * 100 / total).toInt(), "Sending map to the watch")
+                                    notify(name, (sent * 100 / total).toInt(), getString(R.string.notif_map_sending))
                                 }
                             }
                         }
@@ -339,7 +340,7 @@ class MapTransferService : Service() {
                 finished.set(true)
             } catch (e: IOException) {
                 if (stalled.get()) {
-                    throw IOException("No data moved for ${STALL_MS / 1000} s: the connection to the watch is too weak or the watch app stopped")
+                    throw IOException(getString(R.string.map_err_stall, (STALL_MS / 1000).toInt()))
                 }
                 throw e
             } finally {
@@ -352,8 +353,8 @@ class MapTransferService : Service() {
     private fun friendly(e: Exception): String {
         val m = e.message ?: e.javaClass.simpleName
         return when {
-            e is kotlinx.coroutines.TimeoutCancellationException -> "The watch did not respond in time. Open GC Watch on the watch and try again."
-            "Channel closed" in m -> "The connection to the watch was interrupted ($m). Tap Retry: it resumes where it stopped."
+            e is kotlinx.coroutines.TimeoutCancellationException -> getString(R.string.map_err_timeout)
+            "Channel closed" in m -> getString(R.string.map_err_interrupted, m)
             else -> m
         }
     }
@@ -364,22 +365,22 @@ class MapTransferService : Service() {
     private fun fail(name: String, message: String) {
         if (cancelled()) return
         _state.value = MapTransferState.Failed(name, message)
-        finishNotification(name, "Map transfer failed")
+        finishNotification(name, getString(R.string.notif_map_failed))
     }
 
-    private var mode = ""
+    private var viaWifiMode = false
     private var note = ""
 
     private fun setWorking(name: String, phase: MapTransferState.Phase, sent: Long, total: Long, speed: Long) {
         if (cancelled()) return
-        _state.value = MapTransferState.Working(name, phase, sent, total, speed, note, mode)
+        _state.value = MapTransferState.Working(name, phase, sent, total, speed, note, viaWifiMode)
     }
 
     // ── Notification helpers ──────────────────────────────────────────────────
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(CHANNEL_ID, "Map Transfer", NotificationManager.IMPORTANCE_LOW).apply {
-            description = "Shows progress while sending map files to the watch"
+        val channel = NotificationChannel(CHANNEL_ID, getString(R.string.notif_map_channel), NotificationManager.IMPORTANCE_LOW).apply {
+            description = getString(R.string.notif_map_channel_desc)
         }
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
     }
@@ -451,7 +452,7 @@ class MapTransferService : Service() {
 
         fun startTransfer(context: Context, mapFile: Uri) {
             _state.value = MapTransferState.Working(
-                mapFile.lastPathSegment ?: "map", MapTransferState.Phase.ASKING_WATCH,
+                mapFile.lastPathSegment ?: context.getString(R.string.map_default_name), MapTransferState.Phase.ASKING_WATCH,
             )
             val intent = Intent(context, MapTransferService::class.java).apply {
                 putExtra(EXTRA_MAP_URI, mapFile.toString())

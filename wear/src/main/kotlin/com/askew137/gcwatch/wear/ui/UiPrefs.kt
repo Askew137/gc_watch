@@ -1,15 +1,17 @@
 package com.askew137.gcwatch.wear.ui
 
+import androidx.annotation.StringRes
+import com.askew137.gcwatch.wear.R
 import android.content.Context
 import android.hardware.SensorManager
 
 /** How quickly the view-direction cone follows the wrist (sensor rate and smoothing). */
-enum class HeadingReaction(val label: String, val sensorDelay: Int, val smoothing: Float) {
+enum class HeadingReaction(@StringRes val labelRes: Int, val sensorDelay: Int, val smoothing: Float) {
     /** Raw sensor, highest rate: snappy, can jitter, uses the most battery. */
-    FAST("Rychlá", SensorManager.SENSOR_DELAY_GAME, 1.0f),
-    NORMAL("Normální", SensorManager.SENSOR_DELAY_UI, 0.35f),
+    FAST(R.string.reaction_fast, SensorManager.SENSOR_DELAY_GAME, 1.0f),
+    NORMAL(R.string.reaction_normal, SensorManager.SENSOR_DELAY_UI, 0.35f),
     /** Lower rate and strong smoothing: calm and frugal. */
-    ECO("Úsporná", SensorManager.SENSOR_DELAY_NORMAL, 0.15f),
+    ECO(R.string.reaction_eco, SensorManager.SENSOR_DELAY_NORMAL, 0.15f),
 }
 
 /** Watch-local display/battery settings (not synced to the phone). */

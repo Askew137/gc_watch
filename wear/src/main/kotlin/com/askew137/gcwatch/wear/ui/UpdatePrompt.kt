@@ -1,5 +1,7 @@
 package com.askew137.gcwatch.wear.ui
 
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.wear.R
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +38,8 @@ import java.io.File
 @Composable
 fun UpdatePrompt(context: Context, apk: File, onLater: () -> Unit) {
     var hint by remember { mutableStateOf<String?>(null) }
+    val allowHint = stringResource(R.string.update_allow_hint, context.packageName)
+    val failedHint = { msg: String? -> context.getString(R.string.update_failed, msg) }
 
     Box(
         modifier = Modifier.fillMaxSize().background(Color.Black),
@@ -50,7 +54,7 @@ fun UpdatePrompt(context: Context, apk: File, onLater: () -> Unit) {
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                "Nová verze GC Watch",
+                stringResource(R.string.update_title),
                 fontSize = 14.sp,
                 color = MaterialTheme.colors.primary,
                 textAlign = TextAlign.Center,
@@ -58,23 +62,23 @@ fun UpdatePrompt(context: Context, apk: File, onLater: () -> Unit) {
             Chip(
                 onClick = {
                     if (!ApkInstaller.canInstall(context)) {
-                        hint = "Povolte instalaci: adb shell appops set ${context.packageName} REQUEST_INSTALL_PACKAGES allow"
+                        hint = allowHint
                     } else {
                         try {
                             ApkInstaller.install(context, apk)
                         } catch (e: Exception) {
                             Timber.e(e, "Could not start the update")
-                            hint = "Instalace selhala: ${e.message}"
+                            hint = failedHint(e.message)
                         }
                     }
                 },
-                label = { Text("Instalovat", fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                label = { Text(stringResource(R.string.update_install), fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             )
             Chip(
                 onClick = onLater,
-                label = { Text("Později", fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                label = { Text(stringResource(R.string.update_later), fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )

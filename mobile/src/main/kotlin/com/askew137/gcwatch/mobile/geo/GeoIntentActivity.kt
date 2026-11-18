@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import com.askew137.gcwatch.core.communication.MessagePaths
 import com.askew137.gcwatch.core.communication.WaypointSerializer
 import com.askew137.gcwatch.core.model.Waypoint
+import com.askew137.gcwatch.mobile.R
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +48,7 @@ class GeoIntentActivity : ComponentActivity() {
         val uri = intent?.data
         if (uri == null) {
             Timber.w("GeoIntentActivity launched with null URI")
-            toast(applicationContext, "GC Watch: the link has no location")
+            toast(applicationContext, applicationContext.getString(R.string.geo_no_location))
             finish()
             return
         }
@@ -56,7 +57,7 @@ class GeoIntentActivity : ComponentActivity() {
         val waypoint = parseGeoUri(uri)
         if (waypoint == null) {
             Timber.e("Failed to parse geo URI: $uri")
-            toast(applicationContext, "GC Watch: could not read coordinates from the link")
+            toast(applicationContext, applicationContext.getString(R.string.geo_bad_coords))
             finish()
             return
         }
@@ -71,7 +72,7 @@ class GeoIntentActivity : ComponentActivity() {
             val nodes = Wearable.getNodeClient(context).connectedNodes.await()
             if (nodes.isEmpty()) {
                 Timber.w("No connected Wear OS nodes – dropping waypoint")
-                toast(context, "GC Watch: the watch is not connected, target not sent")
+                toast(context, context.getString(R.string.geo_not_connected))
                 return
             }
             val payload = WaypointSerializer.encode(waypoint)
@@ -80,10 +81,10 @@ class GeoIntentActivity : ComponentActivity() {
                 client.sendMessage(node.id, MessagePaths.SET_TARGET, payload).await()
                 Timber.i("Sent waypoint ${waypoint.code.ifEmpty { waypoint.label }} to ${node.displayName}")
             }
-            toast(context, "Sent to the watch: " + waypoint.code.ifEmpty { waypoint.label.ifEmpty { "%.5f, %.5f".format(waypoint.lat, waypoint.lon) } })
+            toast(context, context.getString(R.string.geo_sent, waypoint.code.ifEmpty { waypoint.label.ifEmpty { "%.5f, %.5f".format(waypoint.lat, waypoint.lon) } }))
         } catch (e: Exception) {
             Timber.e(e, "Error forwarding geo URI waypoint to watch")
-            toast(context, "GC Watch: sending to the watch failed (${e.message ?: e.javaClass.simpleName})")
+            toast(context, context.getString(R.string.geo_failed, e.message ?: e.javaClass.simpleName))
         }
     }
 

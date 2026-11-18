@@ -1,0 +1,179 @@
+<resources>
+    <!-- Common -->
+    <string name="action_back">Zpět</string>
+    <string name="action_cancel">Zrušit</string>
+    <string name="action_dismiss">Zavřít</string>
+    <string name="action_ok">OK</string>
+    <string name="action_remove">Odebrat</string>
+    <string name="action_keep">Ponechat</string>
+    <string name="action_delete">Smazat</string>
+    <string name="action_download">Stáhnout</string>
+    <string name="action_remove_from_phone">Odebrat z telefonu</string>
+    <string name="step_with_percent">%1$s %2$d %%</string>
+    <string name="step_unknown">%1$s…</string>
+
+    <!-- Home -->
+    <string name="home_watch_connected">Hodinky připojeny</string>
+    <string name="home_watch_searching">Hledám hodinky…</string>
+    <string name="home_watch_none">Žádné hodinky nejsou připojeny</string>
+    <string name="maps_routing_title">Mapy a navigace</string>
+    <string name="home_maps_subtitle">Správa map a navigačních dat</string>
+    <string name="settings_title">Nastavení</string>
+    <string name="home_settings_subtitle">Barva zvýraznění, motiv, jednotky</string>
+    <string name="home_mismatch_versions">Hodinky mají verzi %1$s, telefon %2$s.</string>
+    <string name="home_mismatch_no_report">Hodinky neoznámily svou verzi (pravděpodobně starší aplikace).</string>
+    <string name="home_mismatch_hint">Různé verze si nemusí rozumět (cíle, trasy nebo nastavení mohou přestat fungovat).</string>
+    <string name="home_failed">Selhalo: %1$s</string>
+    <string name="home_confirm_on_watch">Otevřete GC Watch v hodinkách a potvrďte instalaci.</string>
+    <string name="home_align_versions">Sjednotit obě verze</string>
+    <string name="home_allow_install">Povolte instalaci a klepněte znovu</string>
+    <string name="home_check_update">Zkontrolovat aktualizace</string>
+    <string name="home_checking">Kontroluji…</string>
+    <string name="home_update_available">K dispozici je aktualizace: v%1$s</string>
+    <string name="home_update_confirm_both">Potvrďte instalaci v telefonu. Potvrďte ji také v hodinkách (otevřete tam GC Watch).</string>
+    <string name="home_update_failed">Aktualizace selhala: %1$s</string>
+    <string name="home_update_idle_inapp">Aktualizuje telefon i hodinky (hodinky musí být připojeny).</string>
+    <string name="home_update_idle_page">Klepnutím otevřete stránku vydání na GitHubu.</string>
+    <string name="home_update_both">Aktualizovat telefon + hodinky</string>
+    <string name="home_release_page">Stránka vydání</string>
+    <string name="home_version_footer">GC Watch v%1$s (%2$s)</string>
+    <string name="check_up_to_date">Máte nejnovější verzi: nainstalována je %1$s, nejnovější vydaná verze je %2$s. (Předběžná vydání se nenabízejí.)</string>
+    <string name="check_failed">Nelze se spojit se serverem aktualizací. Zkontrolujte připojení.</string>
+    <string name="update_release_load_failed">Nepodařilo se načíst vydání v%1$s (server aktualizací není dostupný, nebo toto vydání neexistuje)</string>
+
+    <!-- Settings -->
+    <string name="settings_accent">Barva zvýraznění</string>
+    <string name="settings_selected">Vybráno: %1$s</string>
+    <string name="accent_signal_green">Signální zelená</string>
+    <string name="accent_electric_cyan">Elektrická azurová</string>
+    <string name="accent_safety_orange">Výstražná oranžová</string>
+    <string name="accent_signal_gold">Signální zlatá</string>
+    <string name="accent_pure_white">Čistě bílá</string>
+    <string name="accent_night_red">Noční červená</string>
+    <string name="settings_theme">Motiv</string>
+    <string name="theme_normal">Normální</string>
+    <string name="theme_night_red">Noční červený</string>
+    <string name="settings_units">Jednotky vzdálenosti</string>
+    <string name="units_metric">Metrické (km)</string>
+    <string name="units_imperial">Imperiální (mi)</string>
+    <string name="settings_gps">Zdroj GPS</string>
+    <string name="settings_use_phone_gps">Používat GPS telefonu</string>
+    <string name="settings_gps_desc">Phone Fused posílá polohu do hodinek přes Bluetooth; Watch Hardware používá vlastní GPS hodinek.</string>
+
+    <!-- Maps screen -->
+    <string name="maps_remove_title">Odebrat %1$s z telefonu?</string>
+    <string name="maps_remove_text">Smaže se pouze kopie v telefonu (%1$s). Mapa, která už byla odeslána, zůstane v hodinkách. Soubor můžete později přidat znovu.</string>
+    <string name="maps_files_header">Soubory map (.map)</string>
+    <string name="maps_empty">Zatím žádné soubory .map. Přidejte je níže.</string>
+    <string name="maps_wifi_hint">Rychlé, když jsou telefon a hodinky ve stejné síti Wi-Fi</string>
+    <string name="maps_send">Odeslat do hodinek</string>
+    <string name="maps_add">Přidat soubor mapy</string>
+    <string name="maps_copying">Kopíruji %1$s…</string>
+    <string name="maps_where">Kde získat soubory map</string>
+    <string name="maps_routes_ready">Trasy: připraveno (%1$s)</string>
+    <string name="maps_routes_none">Trasy: pro tuto oblast neexistují navigační data (moře nebo nepokryté území)</string>
+    <plurals name="maps_routes_need">
+        <item quantity="one">Trasy potřebují %1$d dlaždici dat (%2$s)%3$s</item>
+        <item quantity="few">Trasy potřebují %1$d dlaždice dat (%2$s)%3$s</item>
+        <item quantity="many">Trasy potřebují %1$d dlaždice dat (%2$s)%3$s</item>
+        <item quantity="other">Trasy potřebují %1$d dlaždic dat (%2$s)%3$s</item>
+    </plurals>
+    <string name="maps_download_routing">Stáhnout navigační data</string>
+    <string name="maps_download_routing_size">Stáhnout navigační data (%1$s)</string>
+    <string name="maps_downloading_tile">Stahuji %1$s…</string>
+    <string name="maps_downloading_tile_queued">Stahuji %1$s… (čeká dalších: %2$d)</string>
+    <string name="maps_nav_header">Navigační data (trasy)</string>
+    <string name="maps_nav_desc">Pěší trasy se počítají v telefonu z dat BRouter. Stáhněte si dlaždice pro oblasti, kde hrajete. Potřebuje je pouze telefon – do hodinek se nic neposílá.</string>
+    <string name="maps_missing_tile">Poslední trasa potřebuje data, která nejsou nainstalována: %1$s</string>
+    <string name="maps_download_tile">Stáhnout %1$s</string>
+    <string name="maps_download_tile_size">Stáhnout %1$s (%2$s)</string>
+    <string name="maps_tile_downloading_pct">Stahuji %1$d %% (%2$s)</string>
+    <string name="maps_tile_downloading">Stahuji…</string>
+    <string name="maps_tile_installed">Nainstalováno, %1$s</string>
+    <string name="maps_tile_not_installed_size">Nenainstalováno, %1$s</string>
+    <string name="maps_tile_not_installed">Nenainstalováno</string>
+    <string name="maps_download_failed">Stahování selhalo: %1$s</string>
+    <string name="maps_other_title">Jiná oblast</string>
+    <string name="maps_other_desc">Jiná země? Zadejte místo jako souřadnice (šířka, délka, např. 48.2, 16.4 pro Vídeň) nebo název dlaždice (např. E15_N45). Každá dlaždice je čtverec 5°×5° pojmenovaný podle jihozápadního rohu.</string>
+    <string name="maps_other_hint">48.2, 16.4  nebo  E15_N45</string>
+    <string name="maps_other_invalid">Neplatná dlaždice ani souřadnice.</string>
+    <string name="maps_other_installed">%1$s je již nainstalováno.</string>
+    <string name="maps_other_tile">Dlaždice %1$s</string>
+    <string name="maps_other_tile_size">Dlaždice %1$s, %2$s</string>
+
+    <!-- Transfer card -->
+    <string name="transfer_sending">Odesílám %1$s do hodinek</string>
+    <string name="transfer_asking">Zjišťuji, co už hodinky mají…</string>
+    <string name="transfer_progress">%1$d %%  ·  %2$s z %3$s</string>
+    <string name="transfer_speed">%1$s/s</string>
+    <string name="transfer_measuring">měřím rychlost…</string>
+    <string name="transfer_left">zbývá %1$s</string>
+    <string name="transfer_wifi_info">Přes Wi-Fi: hodinky si soubor stahují z telefonu. Při přerušení naváže tlačítko Zkusit znovu.</string>
+    <string name="transfer_bt_info">Přes pomalé spojení Bluetooth. %1$s</string>
+    <string name="transfer_bt_default_note">Pro rychlejší přenos připojte telefon i hodinky ke stejné síti Wi-Fi.</string>
+    <string name="transfer_confirming">Odesláno. Čekám, až hodinky soubor potvrdí…</string>
+    <string name="transfer_done">%1$s je v hodinkách</string>
+    <string name="transfer_done_detail">Potvrzeno hodinkami (%1$s). Kopii v telefonu můžete odebrat a uvolnit tak místo.</string>
+    <string name="transfer_failed">Odeslání %1$s selhalo</string>
+    <string name="transfer_retry">Zkusit znovu (naváže)</string>
+
+    <!-- Map transfer service -->
+    <string name="notif_map_channel">Přenos map</string>
+    <string name="notif_map_channel_desc">Zobrazuje průběh odesílání souborů map do hodinek</string>
+    <string name="notif_map_sending">Odesílám mapu do hodinek</string>
+    <string name="notif_map_failed">Přenos mapy selhal</string>
+    <string name="notif_map_sent">Mapa odeslána do hodinek</string>
+    <string name="map_default_name">mapa</string>
+    <string name="map_err_missing_file">Soubor mapy v telefonu chybí</string>
+    <string name="map_err_bad_name">Název souboru „%1$s“ není platný název souboru .map</string>
+    <string name="map_err_not_connected">Hodinky nejsou připojeny</string>
+    <string name="map_err_no_answer">Hodinky neodpověděly. Otevřete GC Watch v hodinkách (musí mít stejnou verzi jako telefon) a zkuste to znovu.</string>
+    <string name="map_err_no_space">V hodinkách není pro tuto mapu dost volného místa</string>
+    <string name="map_err_no_confirm">Hodinky soubor nepotvrdily. Otevřete GC Watch v hodinkách a klepněte na Zkusit znovu (naváže).</string>
+    <string name="map_err_incomplete">Soubor nedorazil celý. Klepněte na Zkusit znovu: naváže tam, kde přenos skončil.</string>
+    <string name="map_err_stall_wifi">%1$d s se přes Wi-Fi nepřenesla žádná data. Ujistěte se, že hodinky jsou ve stejné síti Wi-Fi a nejsou uspané, a klepněte na Zkusit znovu (naváže).</string>
+    <string name="map_err_stall">%1$d s se nepřenesla žádná data: spojení s hodinkami je příliš slabé, nebo aplikace v hodinkách přestala běžet</string>
+    <string name="map_err_seek">V souboru %1$s nelze přetáčet</string>
+    <string name="map_err_timeout">Hodinky neodpověděly včas. Otevřete GC Watch v hodinkách a zkuste to znovu.</string>
+    <string name="map_err_interrupted">Spojení s hodinkami bylo přerušeno (%1$s). Klepněte na Zkusit znovu: naváže tam, kde přenos skončil.</string>
+    <string name="map_note_no_wifi">Telefon není připojen k Wi-Fi (nebo nemá použitelnou adresu).</string>
+    <string name="map_note_no_connect">Wi-Fi nepoužita: hodinky se nepřipojily k %1$s do %2$d s (jiná síť, nebo router izoluje zařízení).</string>
+    <string name="map_note_wifi_reason">Wi-Fi nepoužita: %1$s</string>
+    <string name="map_note_unreachable">hodinky se nemohly spojit s telefonem</string>
+
+    <!-- Segment download service -->
+    <string name="notif_seg_channel">Navigační data</string>
+    <string name="notif_seg_title">Stahuji navigační data</string>
+    <string name="seg_err_http">HTTP %1$d</string>
+    <string name="seg_err_empty">Prázdná odpověď</string>
+    <string name="seg_err_space">Není dost volného místa (potřeba %1$d MB)</string>
+    <string name="seg_err_incomplete">Neúplné stažení (%1$d z %2$d bajtů)</string>
+    <string name="seg_err_store">Soubor se nepodařilo uložit</string>
+
+    <!-- App updater -->
+    <string name="step_starting">Spouštím</string>
+    <string name="step_download_phone">Stahuji aplikaci pro telefon</string>
+    <string name="step_download_watch">Stahuji aplikaci pro hodinky</string>
+    <string name="step_sending_watch">Odesílám do hodinek</string>
+    <string name="step_sending_watch_wifi">Odesílám do hodinek (Wi-Fi)</string>
+    <string name="step_waiting_confirm">Čekám na potvrzení z hodinek</string>
+    <string name="update_err_no_apks">Vydání neobsahuje soubory APK</string>
+    <string name="update_err_phone_rejected">APK pro telefon bylo odmítnuto: %1$s</string>
+    <string name="update_err_wrong_package">APK pro hodinky má nesprávný balíček</string>
+    <string name="update_err_http">Stahování selhalo: HTTP %1$d</string>
+    <string name="update_err_empty">Prázdné stahování</string>
+    <string name="update_err_incomplete">Neúplné stažení</string>
+    <string name="update_err_interrupted">Přenos do hodinek byl přerušen (%1$s). Otevřete GC Watch v hodinkách, nenechte je usnout, mějte je blízko telefonu a zkuste to znovu.</string>
+    <string name="update_err_timeout">Hodinky soubor nepotvrdily včas. Otevřete GC Watch v hodinkách a zkuste to znovu.</string>
+    <string name="update_err_stall_wifi">%1$d s se přes Wi-Fi nepřenesla žádná data: nenechte hodinky usnout, ať jsou ve stejné síti Wi-Fi, a zkuste to znovu</string>
+    <string name="update_err_confirm_timeout">Hodinky aktualizaci nepotvrdily včas</string>
+    <string name="update_err_not_connected">Hodinky nejsou připojeny</string>
+    <string name="update_err_stall">Hodinky soubor nepřijímají (%1$d s se nepřenesla žádná data). Otevřete GC Watch v hodinkách, nenechte je usnout, mějte je blízko telefonu a zkuste to znovu.</string>
+
+    <!-- Geo link handler -->
+    <string name="geo_no_location">GC Watch: odkaz neobsahuje polohu</string>
+    <string name="geo_bad_coords">GC Watch: z odkazu se nepodařilo přečíst souřadnice</string>
+    <string name="geo_not_connected">GC Watch: hodinky nejsou připojeny, cíl nebyl odeslán</string>
+    <string name="geo_sent">Odesláno do hodinek: %1$s</string>
+    <string name="geo_failed">GC Watch: odeslání do hodinek selhalo (%1$s)</string>
+</resources>

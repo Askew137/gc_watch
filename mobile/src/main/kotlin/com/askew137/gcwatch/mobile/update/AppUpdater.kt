@@ -3,6 +3,8 @@ package com.askew137.gcwatch.mobile.update
 import android.content.Context
 import com.askew137.gcwatch.core.communication.ApkInstaller
 import com.askew137.gcwatch.core.communication.MessagePaths
+import androidx.annotation.StringRes
+import com.askew137.gcwatch.mobile.R
 import com.askew137.gcwatch.mobile.maps.LanAddress
 import com.askew137.gcwatch.mobile.maps.MapHttpServer
 import com.askew137.gcwatch.mobile.ui.MobileApplication
@@ -59,6 +61,13 @@ object AppUpdater {
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state.asStateFlow()
 
+    /** Application context used to resolve the (localized) texts of states and errors. */
+    @Volatile
+    private var appContext: Context? = null
+
+    private fun text(@StringRes id: Int, vararg args: Any): String =
+        appContext?.getString(id, *args) ?: ""
+
     @Volatile
     private var watchAck: CompletableDeferred<Unit>? = null
 
@@ -102,11 +111,12 @@ object AppUpdater {
     }
 
     fun start(app: MobileApplication, info: UpdateInfo) {
+        appContext = app.applicationContext
         if (_state.value is State.Working) return
         val mobileUrl = info.mobileApkUrl
         val wearUrl = info.wearApkUrl
         if (mobileUrl == null || wearUrl == null) {
-            _state.value = State.Failed("The release has no APK files")
+            _state.value = State.Failed(text(R.string.update_err_no_apks))
             return
         }
         launch(app, mobileUrl, wearUrl)
@@ -117,18 +127,19 @@ object AppUpdater {
      * the release [info] of the newer version.
      */
     fun catchUp(app: MobileApplication, info: UpdateInfo, updateWatch: Boolean, updatePhone: Boolean) {
+        appContext = app.applicationContext
         if (_state.value is State.Working) return
         val mobileUrl = if (updatePhone) info.mobileApkUrl else null
         val wearUrl = if (updateWatch) info.wearApkUrl else null
         if ((updatePhone && mobileUrl == null) || (updateWatch && wearUrl == null) || (mobileUrl == null && wearUrl == null)) {
-            _state.value = State.Failed("The release has no APK files")
+            _state.value = State.Failed(text(R.string.update_err_no_apks))
             return
         }
         launch(app, mobileUrl, wearUrl)
     }
 
     private fun launch(app: MobileApplication, mobileUrl: String?, wearUrl: String?) {
-        _state.value = State.Working("Starting")
+        _state.value = State.Working(text(R.string.step_starting))
         job = app.appScope.launch {
             try {
                 run(app, mobileUrl, wearUrl)
@@ -147,16 +158,16 @@ object AppUpdater {
         val mobile = File(dir, "mobile.apk")
         val wear = File(dir, "wear.apk")
 
-        if (mobileUrl != null) download(mobileUrl, mobile, "Downloading phone app")
-        if (wearUrl != null) download(wearUrl, wear, "Downloading watch app")
+        if (mobileUrl != null) download(mobileUrl, mobile, text(R.string.step_download_phone))
+        if (wearUrl != null) download(wearUrl, wear, text(R.string.step_download_watch))
 
         if (mobileUrl != null) {
-            ApkInstaller.verifyUpdate(app, mobile)?.let { error("Phone APK rejected: $it") }
+            ApkInstaller.verifyUpdate(app, mobile)?.let { error(text(R.string.update_err_phone_rejected, it)) }
         }
         if (wearUrl != null) {
             val wearInfo = app.packageManager.getPackageArchiveInfo(wear.absolutePath, 0)
-            if (wearInfo?.packageName != app.packageName) error("Watch APK has the wrong package")
-            _state.value = State.Working("Sending to the watch")
+            if (wearInfo?.packageName != app.packageName) error(text(R.string.update_err_wrong_package))
+            _state.value = State.Working(text(R.string.step_sending_watch))
             sendToWatch(app, wear)
         }
 
@@ -171,8 +182,8 @@ object AppUpdater {
     private fun download(url: String, target: File, step: String) {
         _state.value = State.Working(step, 0)
         client.newCall(Request.Builder().url(url).build()).execute().use { response ->
-            if (!response.isSuccessful) error("Download failed: HTTP ${response.code}")
-            val body = response.body ?: error("Empty download")
+            if (!response.isSuccessful) error(text(R.string.update_err_http, response.code))
+            val body = response.body ?: error(text(R.string.update_err_empty))
             val total = body.contentLength()
             var written = 0L
             var lastPercent = -1
@@ -192,7 +203,7 @@ object AppUpdater {
                     }
                 }
             }
-            if (total > 0 && written != total) error("Incomplete download")
+            if (total > 0 && written != total) error(text(R.string.update_err_incomplete))
         }
     }
 
@@ -201,9 +212,9 @@ object AppUpdater {
         val m = e.message ?: e.javaClass.simpleName
         return when {
             "Channel closed" in m || e is IOException ->
-                "The transfer to the watch was interrupted ($m). Open GC Watch on the watch, keep the watch awake and close to the phone, and try again."
+                text(R.string.update_err_interrupted, m)
             e is kotlinx.coroutines.TimeoutCancellationException ->
-                "The watch did not confirm the file in time. Open GC Watch on the watch and try again."
+                text(R.string.update_err_timeout)
             else -> m
         }
     }
@@ -226,7 +237,7 @@ object AppUpdater {
             ).await()
             val total = apk.length().coerceAtLeast(1)
             val began = SystemClock.elapsedRealtime()
-            _state.value = State.Working("Sending to the watch (Wi-Fi)", 0)
+            _state.value = State.Working(text(R.string.step_sending_watch_wifi), 0)
             while (!ack.isCompleted) {
                 delay(500)
                 if (failure.isCompleted) {
@@ -239,12 +250,12 @@ object AppUpdater {
                     return false
                 }
                 val served = server.servedUpTo.get()
-                _state.value = State.Working("Sending to the watch (Wi-Fi)", (served * 100 / total).toInt().coerceIn(0, 100))
+                _state.value = State.Working(text(R.string.step_sending_watch_wifi), (served * 100 / total).toInt().coerceIn(0, 100))
                 val idle = System.nanoTime() / 1_000_000 - server.lastActivityMs.get()
                 if (server.contacted && served < total && idle > STALL_MS) {
-                    error("No data moved for ${STALL_MS / 1000} s over Wi-Fi: keep the watch awake and on the same Wi-Fi, then try again")
+                    error(text(R.string.update_err_stall_wifi, (STALL_MS / 1000).toInt()))
                 }
-                if (now - began > 10 * 60_000L) error("The watch did not confirm the update in time")
+                if (now - began > 10 * 60_000L) error(text(R.string.update_err_confirm_timeout))
             }
             return true
         } finally {
@@ -255,7 +266,7 @@ object AppUpdater {
 
     private suspend fun sendToWatch(context: Context, apk: File) {
         val nodes = Wearable.getNodeClient(context).connectedNodes.await()
-        val node = nodes.firstOrNull() ?: error("The watch is not connected")
+        val node = nodes.firstOrNull() ?: error(text(R.string.update_err_not_connected))
 
         val ack = CompletableDeferred<Unit>().also { watchAck = it }
         if (try { viaLan(context, apk, node.id, ack) } catch (e: CancellationException) { throw e }) {
@@ -270,7 +281,7 @@ object AppUpdater {
         val lastProgress = AtomicLong(System.currentTimeMillis())
         val stalled = AtomicBoolean(false)
         val finished = AtomicBoolean(false)
-        _state.value = State.Working("Sending to the watch", 0)
+        _state.value = State.Working(text(R.string.step_sending_watch), 0)
         try {
             coroutineScope {
                 // A blocked write cannot be interrupted, only ended by closing the channel: the
@@ -306,7 +317,7 @@ object AppUpdater {
                                     val percent = (written * 100 / total).toInt()
                                     if (percent != lastPercent) {
                                         lastPercent = percent
-                                        _state.value = State.Working("Sending to the watch", percent)
+                                        _state.value = State.Working(text(R.string.step_sending_watch), percent)
                                     }
                                 }
                             }
@@ -314,12 +325,11 @@ object AppUpdater {
                     }
                     finished.set(true)
                     // The watch answers once the file is stored; only then is it safe to close.
-                    _state.value = State.Working("Waiting for the watch to confirm")
+                    _state.value = State.Working(text(R.string.step_waiting_confirm))
                     withTimeout(60_000) { ack.await() }
                 } catch (e: IOException) {
                     if (stalled.get()) {
-                        error("The watch is not receiving the file (no data moved for ${STALL_MS / 1000} s). " +
-                            "Open GC Watch on the watch, keep it awake and close to the phone, and try again.")
+                        error(text(R.string.update_err_stall, (STALL_MS / 1000).toInt()))
                     }
                     throw e
                 } finally {

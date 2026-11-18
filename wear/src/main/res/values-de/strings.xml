@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notif_channel_name">Navigation</string>
+    <string name="notif_running">Navigation läuft</string>
+    <string name="notif_action_quit">Beenden</string>
+
+    <string name="update_title">Neue GC-Watch-Version</string>
+    <string name="update_install">Installieren</string>
+    <string name="update_later">Später</string>
+    <string name="update_allow_hint">Installation erlauben: adb shell appops set %1$s REQUEST_INSTALL_PACKAGES allow</string>
+    <string name="update_failed">Installation fehlgeschlagen: %1$s</string>
+
+    <string name="exit_title">GC Watch beenden?</string>
+    <string name="exit_stay">Bleiben</string>
+    <string name="exit_quit">Beenden</string>
+    <string name="exit_back_hint">Nochmal zurück: nur zum Ziffernblatt, GPS läuft weiter.</string>
+
+    <string name="compass_auto_on">Am Cache auf Kompass: an</string>
+    <string name="compass_auto_off">Am Cache auf Kompass: aus</string>
+    <string name="compass_auto_desc">Am Cache automatisch zum Kompass</string>
+    <string name="cd_map">Karte</string>
+    <string name="cd_cardinals">Himmelsrichtungen</string>
+    <string name="cd_keep_screen_on">Display anlassen</string>
+    <string name="cardinal_n">N</string>
+    <string name="cardinal_e">O</string>
+    <string name="cardinal_s">S</string>
+    <string name="cardinal_w">W</string>
+
+    <string name="cd_zoom_in">Vergrößern</string>
+    <string name="cd_zoom_out">Verkleinern</string>
+    <string name="line_none">Kein Ziel</string>
+    <string name="line_air">Luftlinie</string>
+    <string name="line_route">Route</string>
+    <string name="line_target_routing">Nur Ziel (Route wird berechnet)</string>
+    <string name="line_target_no_route">Nur Ziel (keine Route verfügbar)</string>
+    <string name="line_target_only">Nur Ziel</string>
+    <string name="cd_target_line">Linie zum Ziel</string>
+    <string name="cd_compass">Kompass</string>
+    <string name="cd_align_heading">Nach Richtung ausrichten</string>
+    <string name="cd_recenter_north">Zentrieren, Norden oben</string>
+    <string name="gps_waiting">Warte auf GPS…</string>
+    <string name="gps_waiting_route">Warte auf GPS…\nRoute nach dem ersten Fix</string>
+    <string name="cd_menu">Menü</string>
+
+    <string name="tab_maps">Karten</string>
+    <string name="tab_look">Look</string>
+    <string name="tab_other">Mehr</string>
+    <string name="maps_auto">Auto nach Standort</string>
+    <string name="maps_delete">Karten löschen…</string>
+    <string name="maps_tick_to_delete">Karten zum Löschen wählen</string>
+    <string name="maps_confirm_delete">%1$d wirklich löschen? (nochmal tippen)</string>
+    <string name="maps_delete_selected">Auswahl löschen (%1$d)</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="look_accent">Akzent</string>
+    <string name="look_theme">Design</string>
+    <string name="theme_normal">Normal</string>
+    <string name="theme_night">Nacht</string>
+    <string name="units_metric">Meter</string>
+    <string name="units_imperial">Meilen</string>
+    <string name="reaction_fast">Schnell</string>
+    <string name="reaction_normal">Normal</string>
+    <string name="reaction_eco">Sparsam</string>
+    <string name="reaction_label">Kegel-Reaktion: %1$s</string>
+    <string name="cd_faster">Schneller</string>
+    <string name="cd_slower">Langsamer</string>
+    <string name="ambient_gps_label">GPS bei Display aus: alle %1$d s</string>
+    <string name="cd_less_often">Seltener</string>
+    <string name="cd_more_often">Häufiger</string>
+    <string name="service_unlimited">Hintergrunddienst: unbegrenzt</string>
+    <string name="service_timeout_label">Hintergrund-GPS aus nach %1$d h</string>
+    <string name="service_timeout_note">nach Verlassen der App</string>
+    <string name="cd_longer">Länger</string>
+    <string name="cd_sooner">Früher</string>
+    <string name="version_label">GC Watch v%1$s (%2$d)</string>
+</resources>

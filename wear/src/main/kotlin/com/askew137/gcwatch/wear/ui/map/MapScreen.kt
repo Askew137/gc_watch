@@ -1,5 +1,7 @@
 package com.askew137.gcwatch.wear.ui.map
 
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.wear.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
@@ -217,12 +219,12 @@ fun MapScreen(
         // ── Top: zoom buttons ────────────────────────────────────────────────
         EdgeIconButton(
             onClick = { mapViewModel.zoomIn() },
-            icon = { Icon(Icons.Rounded.Add, contentDescription = "Přiblížit", modifier = Modifier.size(20.dp), tint = accentColor) },
+            icon = { Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.cd_zoom_in), modifier = Modifier.size(20.dp), tint = accentColor) },
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp).offset(x = (-26).dp),
         )
         EdgeIconButton(
             onClick = { mapViewModel.zoomOut() },
-            icon = { Icon(Icons.Rounded.Remove, contentDescription = "Oddálit", modifier = Modifier.size(20.dp), tint = accentColor) },
+            icon = { Icon(Icons.Rounded.Remove, contentDescription = stringResource(R.string.cd_zoom_out), modifier = Modifier.size(20.dp), tint = accentColor) },
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp).offset(x = 26.dp),
         )
 
@@ -231,12 +233,12 @@ fun MapScreen(
             onClick = {
                 val mode = onCycleLineMode()
                 lineHint = when {
-                    mode == null -> "Žádný cíl"
-                    mode == TargetLineMode.AIR_LINE -> "Vzdušná čára"
-                    mode == TargetLineMode.ROUTE -> "Trasa"
-                    route == null && routePending -> "Jen cíl (trasa se ještě počítá)"
-                    route == null -> "Jen cíl (trasa není k dispozici)"
-                    else -> "Jen cíl"
+                    mode == null -> context.getString(R.string.line_none)
+                    mode == TargetLineMode.AIR_LINE -> context.getString(R.string.line_air)
+                    mode == TargetLineMode.ROUTE -> context.getString(R.string.line_route)
+                    route == null && routePending -> context.getString(R.string.line_target_routing)
+                    route == null -> context.getString(R.string.line_target_no_route)
+                    else -> context.getString(R.string.line_target_only)
                 }
             },
             icon = {
@@ -247,7 +249,7 @@ fun MapScreen(
                 }
                 Icon(
                     icon,
-                    contentDescription = "Čára k cíli",
+                    contentDescription = stringResource(R.string.cd_target_line),
                     modifier = Modifier.size(20.dp),
                     tint = tint,
                 )
@@ -256,7 +258,7 @@ fun MapScreen(
         )
         EdgeIconButton(
             onClick = onNavigateToCompass,
-            icon = { Icon(Icons.Rounded.Explore, contentDescription = "Kompas", modifier = Modifier.size(20.dp), tint = accentColor) },
+            icon = { Icon(Icons.Rounded.Explore, contentDescription = stringResource(R.string.cd_compass), modifier = Modifier.size(20.dp), tint = accentColor) },
             modifier = Modifier.align(Alignment.CenterStart).padding(start = 4.dp).offset(y = 22.dp),
         )
 
@@ -269,7 +271,7 @@ fun MapScreen(
                         ?: Timber.w("MapScreen: no heading available")
                 }
             },
-            icon = { Icon(Icons.Rounded.Navigation, contentDescription = "Srovnat podle směru", modifier = Modifier.size(20.dp), tint = accentColor) },
+            icon = { Icon(Icons.Rounded.Navigation, contentDescription = stringResource(R.string.cd_align_heading), modifier = Modifier.size(20.dp), tint = accentColor) },
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp).offset(y = (-22).dp),
         )
         EdgeIconButton(
@@ -278,7 +280,7 @@ fun MapScreen(
                 mapViewModel.resetNorthUp()
             },
             // White while the view is dragged away from me: "tap to come back".
-            icon = { Icon(Icons.Rounded.MyLocation, contentDescription = "Vycentrovat, sever nahoře", modifier = Modifier.size(20.dp), tint = if (panCenter != null) Color.White else accentColor) },
+            icon = { Icon(Icons.Rounded.MyLocation, contentDescription = stringResource(R.string.cd_recenter_north), modifier = Modifier.size(20.dp), tint = if (panCenter != null) Color.White else accentColor) },
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp).offset(y = 22.dp),
         )
 
@@ -286,7 +288,7 @@ fun MapScreen(
         // requested from the phone once there is a fix).
         if (location == null) {
             Text(
-                text = if (activeTarget != null) "Čekám na GPS…\ntrasa se spočítá po prvním fixu" else "Čekám na GPS…",
+                text = stringResource(if (activeTarget != null) R.string.gps_waiting_route else R.string.gps_waiting),
                 fontSize = 11.sp,
                 color = Color.White,
                 textAlign = TextAlign.Center,
@@ -315,7 +317,7 @@ fun MapScreen(
         // ── Bottom: menu icon ────────────────────────────────────────────────
         EdgeIconButton(
             onClick = { showMenu = true },
-            icon = { Icon(Icons.Rounded.Menu, contentDescription = "Menu", modifier = Modifier.size(20.dp), tint = accentColor) },
+            icon = { Icon(Icons.Rounded.Menu, contentDescription = stringResource(R.string.cd_menu), modifier = Modifier.size(20.dp), tint = accentColor) },
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
         )
 

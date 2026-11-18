@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notif_channel_name">Navigace</string>
+    <string name="notif_running">Navigace běží</string>
+    <string name="notif_action_quit">Ukončit</string>
+
+    <string name="update_title">Nová verze GC Watch</string>
+    <string name="update_install">Instalovat</string>
+    <string name="update_later">Později</string>
+    <string name="update_allow_hint">Povolte instalaci: adb shell appops set %1$s REQUEST_INSTALL_PACKAGES allow</string>
+    <string name="update_failed">Instalace selhala: %1$s</string>
+
+    <string name="exit_title">Ukončit GC Watch?</string>
+    <string name="exit_stay">Zůstat</string>
+    <string name="exit_quit">Ukončit</string>
+    <string name="exit_back_hint">Zpět znovu: jen na ciferník, GPS poběží dál.</string>
+
+    <string name="compass_auto_on">U keše přepnout na kompas: zap</string>
+    <string name="compass_auto_off">U keše přepnout na kompas: vyp</string>
+    <string name="compass_auto_desc">Automaticky na kompas u keše</string>
+    <string name="cd_map">Mapa</string>
+    <string name="cd_cardinals">Světové strany</string>
+    <string name="cd_keep_screen_on">Nevypínat displej</string>
+    <string name="cardinal_n">S</string>
+    <string name="cardinal_e">V</string>
+    <string name="cardinal_s">J</string>
+    <string name="cardinal_w">Z</string>
+
+    <string name="cd_zoom_in">Přiblížit</string>
+    <string name="cd_zoom_out">Oddálit</string>
+    <string name="line_none">Žádný cíl</string>
+    <string name="line_air">Vzdušná čára</string>
+    <string name="line_route">Trasa</string>
+    <string name="line_target_routing">Jen cíl (trasa se ještě počítá)</string>
+    <string name="line_target_no_route">Jen cíl (trasa není k dispozici)</string>
+    <string name="line_target_only">Jen cíl</string>
+    <string name="cd_target_line">Čára k cíli</string>
+    <string name="cd_compass">Kompas</string>
+    <string name="cd_align_heading">Srovnat podle směru</string>
+    <string name="cd_recenter_north">Vycentrovat, sever nahoře</string>
+    <string name="gps_waiting">Čekám na GPS…</string>
+    <string name="gps_waiting_route">Čekám na GPS…\ntrasa se spočítá po prvním fixu</string>
+    <string name="cd_menu">Menu</string>
+
+    <string name="tab_maps">Mapy</string>
+    <string name="tab_look">Vzhled</string>
+    <string name="tab_other">Ostatní</string>
+    <string name="maps_auto">Auto podle polohy</string>
+    <string name="maps_delete">Smazat mapy…</string>
+    <string name="maps_tick_to_delete">Zaškrtni mapy ke smazání</string>
+    <string name="maps_confirm_delete">Opravdu smazat %1$d? (klepni znovu)</string>
+    <string name="maps_delete_selected">Smazat vybrané (%1$d)</string>
+    <string name="cancel">Zrušit</string>
+    <string name="look_accent">Akcent</string>
+    <string name="look_theme">Téma</string>
+    <string name="theme_normal">Normální</string>
+    <string name="theme_night">Noční</string>
+    <string name="units_metric">Metry</string>
+    <string name="units_imperial">Míle</string>
+    <string name="reaction_fast">Rychlá</string>
+    <string name="reaction_normal">Normální</string>
+    <string name="reaction_eco">Úsporná</string>
+    <string name="reaction_label">Reakce kuželu: %1$s</string>
+    <string name="cd_faster">Rychleji</string>
+    <string name="cd_slower">Pomaleji</string>
+    <string name="ambient_gps_label">GPS při zhasnutí: každých %1$d s</string>
+    <string name="cd_less_often">Méně často</string>
+    <string name="cd_more_often">Častěji</string>
+    <string name="service_unlimited">Služba na pozadí: neomezeně</string>
+    <string name="service_timeout_label">Vypnout GPS na pozadí po %1$d h</string>
+    <string name="service_timeout_note">od odchodu z aplikace</string>
+    <string name="cd_longer">Déle</string>
+    <string name="cd_sooner">Dříve</string>
+    <string name="version_label">GC Watch v%1$s (%2$d)</string>
+</resources>

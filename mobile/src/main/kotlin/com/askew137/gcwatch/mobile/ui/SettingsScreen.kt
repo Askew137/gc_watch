@@ -42,6 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.mobile.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.askew137.gcwatch.core.model.AccentColor
@@ -63,10 +65,10 @@ fun SettingsScreen(
         containerColor = Color.Black,
         topBar = {
             TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -88,7 +90,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // ── Accent color ──────────────────────────────────────────────────
-            SettingsCard(title = "Accent Color") {
+            SettingsCard(title = stringResource(R.string.settings_accent)) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -119,15 +121,14 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "Selected: ${config.accentColor.name.replace('_', ' ').lowercase()
-                        .replaceFirstChar { it.uppercase() }}",
+                    stringResource(R.string.settings_selected, accentName(config.accentColor)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             // ── Theme mode ────────────────────────────────────────────────────
-            SettingsCard(title = "Theme Mode") {
+            SettingsCard(title = stringResource(R.string.settings_theme)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -137,7 +138,7 @@ fun SettingsScreen(
                         onClick  = {
                             viewModel.updateConfig(config.copy(themeMode = ThemeMode.NORMAL))
                         },
-                        label = { Text("Normal") },
+                        label = { Text(stringResource(R.string.theme_normal)) },
                         modifier = Modifier.weight(1f),
                     )
                     FilterChip(
@@ -145,14 +146,14 @@ fun SettingsScreen(
                         onClick  = {
                             viewModel.updateConfig(config.copy(themeMode = ThemeMode.NIGHT_RED))
                         },
-                        label = { Text("Night Red") },
+                        label = { Text(stringResource(R.string.theme_night_red)) },
                         modifier = Modifier.weight(1f),
                     )
                 }
             }
 
             // ── Units ─────────────────────────────────────────────────────────
-            SettingsCard(title = "Distance Units") {
+            SettingsCard(title = stringResource(R.string.settings_units)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -160,20 +161,20 @@ fun SettingsScreen(
                     FilterChip(
                         selected = config.units == Units.METRIC,
                         onClick  = { viewModel.updateConfig(config.copy(units = Units.METRIC)) },
-                        label    = { Text("Metric (km)") },
+                        label    = { Text(stringResource(R.string.units_metric)) },
                         modifier = Modifier.weight(1f),
                     )
                     FilterChip(
                         selected = config.units == Units.IMPERIAL,
                         onClick  = { viewModel.updateConfig(config.copy(units = Units.IMPERIAL)) },
-                        label    = { Text("Imperial (mi)") },
+                        label    = { Text(stringResource(R.string.units_imperial)) },
                         modifier = Modifier.weight(1f),
                     )
                 }
             }
 
             // ── GPS source ────────────────────────────────────────────────────
-            SettingsCard(title = "GPS Source") {
+            SettingsCard(title = stringResource(R.string.settings_gps)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -181,13 +182,12 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Use phone GPS",
+                            stringResource(R.string.settings_use_phone_gps),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            "Phone Fused provides location via BT to watch; " +
-                                    "Watch Hardware uses the watch's own GPS.",
+                            stringResource(R.string.settings_gps_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -230,3 +230,15 @@ private fun SettingsCard(title: String, content: @Composable ColumnScope.() -> U
         }
     }
 }
+
+@Composable
+private fun accentName(accent: AccentColor): String = stringResource(
+    when (accent) {
+        AccentColor.SIGNAL_GREEN -> R.string.accent_signal_green
+        AccentColor.ELECTRIC_CYAN -> R.string.accent_electric_cyan
+        AccentColor.SAFETY_ORANGE -> R.string.accent_safety_orange
+        AccentColor.SIGNAL_GOLD -> R.string.accent_signal_gold
+        AccentColor.PURE_WHITE -> R.string.accent_pure_white
+        AccentColor.NIGHT_RED -> R.string.accent_night_red
+    }
+)

@@ -61,7 +61,7 @@ class NavigationService : Service() {
     private fun buildNotification(): Notification {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Navigace", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_ID, getString(R.string.notif_channel_name), NotificationManager.IMPORTANCE_LOW)
         )
 
         val open = PendingIntent.getActivity(
@@ -77,18 +77,18 @@ class NavigationService : Service() {
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_ongoing)
-            .setContentTitle("GC Watch")
-            .setContentText("Navigace běží")
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(R.string.notif_running))
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setOngoing(true)
             .setContentIntent(open)
-            .addAction(0, "Ukončit", stop)
+            .addAction(0, getString(R.string.notif_action_quit), stop)
 
         // The chip on the watch face; apply() adds the extras to the builder.
         OngoingActivity.Builder(applicationContext, NOTIFICATION_ID, builder)
             .setStaticIcon(R.drawable.ic_ongoing)
             .setTouchIntent(open)
-            .setStatus(Status.Builder().addTemplate("Navigace běží").build())
+            .setStatus(Status.Builder().addTemplate(getString(R.string.notif_running)).build())
             .build()
             .apply(applicationContext)
 

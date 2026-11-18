@@ -1,5 +1,7 @@
 package com.askew137.gcwatch.wear.ui
 
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.wear.R
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.size
@@ -43,19 +45,19 @@ fun ExitOnBack() {
         },
     ) {
         Alert(
-            title = { Text("Ukončit GC Watch?", textAlign = TextAlign.Center) },
+            title = { Text(stringResource(R.string.exit_title), textAlign = TextAlign.Center) },
             negativeButton = {
                 Button(onClick = { asking = false }) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Zůstat", modifier = Modifier.size(24.dp))
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.exit_stay), modifier = Modifier.size(24.dp))
                 }
             },
             positiveButton = {
                 Button(onClick = { asking = false; activity?.finish() }) {
-                    Icon(Icons.Rounded.Check, contentDescription = "Ukončit", modifier = Modifier.size(24.dp))
+                    Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.exit_quit), modifier = Modifier.size(24.dp))
                 }
             },
         ) {
-            Text("Zpět znovu: jen na ciferník, GPS poběží dál.", fontSize = 11.sp, textAlign = TextAlign.Center)
+            Text(stringResource(R.string.exit_back_hint), fontSize = 11.sp, textAlign = TextAlign.Center)
         }
     }
 }

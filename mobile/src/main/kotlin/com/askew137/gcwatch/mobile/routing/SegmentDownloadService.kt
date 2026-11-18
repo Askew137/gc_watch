@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.askew137.gcwatch.mobile.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,7 +29,7 @@ class SegmentDownloadService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        val channel = NotificationChannel(CHANNEL_ID, "Navigation data", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(CHANNEL_ID, getString(R.string.notif_seg_channel), NotificationManager.IMPORTANCE_LOW)
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
     }
 
@@ -53,11 +54,11 @@ class SegmentDownloadService : Service() {
                 .readTimeout(60, TimeUnit.SECONDS)
                 .build()
             client.newCall(Request.Builder().url(SegmentRepository.url(tile)).build()).execute().use { response ->
-                if (!response.isSuccessful) error("HTTP ${response.code}")
-                val body = response.body ?: error("empty response")
+                if (!response.isSuccessful) error(getString(R.string.seg_err_http, response.code))
+                val body = response.body ?: error(getString(R.string.seg_err_empty))
                 val total = body.contentLength()
                 if (total > 0 && target.parentFile!!.usableSpace < total + FREE_SPACE_MARGIN) {
-                    error("Not enough free space (${total / 1_000_000} MB needed)")
+                    error(getString(R.string.seg_err_space, (total / 1_000_000).toInt()))
                 }
 
                 var written = 0L
@@ -84,9 +85,9 @@ class SegmentDownloadService : Service() {
                         }
                     }
                 }
-                if (total > 0 && written != total) error("Incomplete download ($written of $total bytes)")
+                if (total > 0 && written != total) error(getString(R.string.seg_err_incomplete, written, total))
                 if (target.exists()) target.delete()
-                if (!part.renameTo(target)) error("Could not store the file")
+                if (!part.renameTo(target)) error(getString(R.string.seg_err_store))
                 Timber.i("Routing data %s downloaded (%d bytes)", tile, written)
             }
         } catch (e: Exception) {
@@ -108,7 +109,7 @@ class SegmentDownloadService : Service() {
     private fun notification(tile: String, percent: Int) =
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download)
-            .setContentTitle("Downloading navigation data")
+            .setContentTitle(getString(R.string.notif_seg_title))
             .setContentText(tile)
             .setProgress(100, percent.coerceAtLeast(0), percent < 0)
             .setOngoing(true)

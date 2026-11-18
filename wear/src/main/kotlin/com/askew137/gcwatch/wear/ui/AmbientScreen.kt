@@ -1,5 +1,7 @@
 package com.askew137.gcwatch.wear.ui
 
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.wear.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,7 +56,7 @@ fun AmbientScreen(target: NavigationTarget?, units: Units) {
                     )
                 }
             } else {
-                Text("GC Watch", fontSize = 14.sp, color = Color(0xFF777777))
+                Text(stringResource(R.string.app_name), fontSize = 14.sp, color = Color(0xFF777777))
             }
         }
     }

@@ -41,6 +41,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.mobile.R
 import com.askew137.gcwatch.mobile.update.AppUpdater
 import com.askew137.gcwatch.mobile.update.WatchVersion
 import androidx.compose.ui.text.font.FontWeight
@@ -70,7 +72,7 @@ fun HomeScreen(
     // A failed update must be noticeable, not just a small line inside a card.
     androidx.compose.runtime.LaunchedEffect(updateState) {
         (updateState as? AppUpdater.State.Failed)?.let {
-            android.widget.Toast.makeText(toastContext, "Update failed: ${it.message}", android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(toastContext, toastContext.getString(R.string.home_update_failed, it.message), android.widget.Toast.LENGTH_LONG).show()
         }
     }
     // After a watch-only update the watch reinstalls itself without telling us: re-ask until the
@@ -94,7 +96,7 @@ fun HomeScreen(
         containerColor = Color.Black,
         topBar = {
             TopAppBar(
-                title = { Text("GC Watch", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Black,
                     titleContentColor = MaterialTheme.colorScheme.primary,
@@ -134,9 +136,9 @@ fun HomeScreen(
                     Column {
                         Text(
                             text = when {
-                                connectedNode != null -> "Watch connected"
-                                watchSearching -> "Looking for the watch…"
-                                else -> "No watch connected"
+                                connectedNode != null -> stringResource(R.string.home_watch_connected)
+                                watchSearching -> stringResource(R.string.home_watch_searching)
+                                else -> stringResource(R.string.home_watch_none)
                             },
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -171,12 +173,12 @@ fun HomeScreen(
                     )
                     Column {
                         Text(
-                            "Maps & Routing",
+                            stringResource(R.string.maps_routing_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            "Manage map files and routing graphs",
+                            stringResource(R.string.home_maps_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -202,12 +204,12 @@ fun HomeScreen(
                     )
                     Column {
                         Text(
-                            "Settings",
+                            stringResource(R.string.settings_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            "Accent color, theme, units",
+                            stringResource(R.string.home_settings_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -233,15 +235,15 @@ fun HomeScreen(
                         Text(
                             when (val w = watchVersion) {
                                 is WatchVersion.State.Known ->
-                                    "The watch runs ${w.name}, the phone ${com.askew137.gcwatch.mobile.BuildConfig.VERSION_NAME}."
-                                else -> "The watch did not report its version (probably an older app)."
+                                    stringResource(R.string.home_mismatch_versions, w.name, com.askew137.gcwatch.mobile.BuildConfig.VERSION_NAME)
+                                else -> stringResource(R.string.home_mismatch_no_report)
                             },
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            "Different versions may not understand each other (targets, routes or settings can stop working).",
+                            stringResource(R.string.home_mismatch_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
@@ -250,9 +252,9 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 when (st) {
-                                    is AppUpdater.State.Working -> st.step + if (st.percent >= 0) " ${st.percent} %" else "…"
-                                    is AppUpdater.State.Failed -> "Failed: ${st.message}"
-                                    else -> "Open GC Watch on the watch and confirm the installation."
+                                    is AppUpdater.State.Working -> if (st.percent >= 0) stringResource(R.string.step_with_percent, st.step, st.percent) else stringResource(R.string.step_unknown, st.step)
+                                    is AppUpdater.State.Failed -> stringResource(R.string.home_failed, st.message)
+                                    else -> stringResource(R.string.home_confirm_on_watch)
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
@@ -266,7 +268,7 @@ fun HomeScreen(
                                 else viewModel.openInstallPermissionSettings()
                             },
                         ) {
-                            Text(if (viewModel.canInstallApks()) "Bring both to the same version" else "Allow installing, then tap again")
+                            Text(if (viewModel.canInstallApks()) stringResource(R.string.home_align_versions) else stringResource(R.string.home_allow_install))
                         }
                     }
                 }
@@ -289,7 +291,7 @@ fun HomeScreen(
                             .padding(end = 8.dp),
                     )
                 }
-                Text(if (updateInProgress) "Checking…" else "Check for update")
+                Text(if (updateInProgress) stringResource(R.string.home_checking) else stringResource(R.string.home_check_update))
             }
 
             // Result of a manual check that found nothing new (stays until the next check).
@@ -311,7 +313,7 @@ fun HomeScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "Update available: v${info.version}",
+                            stringResource(R.string.home_update_available, info.version),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Bold,
@@ -322,15 +324,15 @@ fun HomeScreen(
                         Text(
                             when (val st = updateState) {
                                 is AppUpdater.State.Working ->
-                                    st.step + if (st.percent >= 0) " ${st.percent} %" else "…"
+                                    if (st.percent >= 0) stringResource(R.string.step_with_percent, st.step, st.percent) else stringResource(R.string.step_unknown, st.step)
                                 AppUpdater.State.AwaitingConfirmation ->
-                                    "Confirm the installation on the phone. Also confirm it on the watch (open GC Watch there)."
+                                    stringResource(R.string.home_update_confirm_both)
                                 AppUpdater.State.AwaitingWatchConfirmation ->
-                                    "Open GC Watch on the watch and confirm the installation."
-                                is AppUpdater.State.Failed -> "Update failed: ${st.message}"
+                                    stringResource(R.string.home_confirm_on_watch)
+                                is AppUpdater.State.Failed -> stringResource(R.string.home_update_failed, st.message)
                                 AppUpdater.State.Idle ->
-                                    if (info.canUpdateInApp) "Updates the phone and the watch (the watch must be connected)."
-                                    else "Tap to open the GitHub release page."
+                                    if (info.canUpdateInApp) stringResource(R.string.home_update_idle_inapp)
+                                    else stringResource(R.string.home_update_idle_page)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -344,7 +346,7 @@ fun HomeScreen(
                                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            OutlinedButton(onClick = { viewModel.cancelUpdate() }) { Text("Cancel") }
+                            OutlinedButton(onClick = { viewModel.cancelUpdate() }) { Text(stringResource(R.string.action_cancel)) }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         if (info.canUpdateInApp) {
@@ -356,13 +358,13 @@ fun HomeScreen(
                                     else viewModel.openInstallPermissionSettings()
                                 },
                             ) {
-                                Text(if (viewModel.canInstallApks()) "Update phone + watch" else "Allow installing, then tap again")
+                                Text(if (viewModel.canInstallApks()) stringResource(R.string.home_update_both) else stringResource(R.string.home_allow_install))
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { viewModel.openReleaseUrl(info.releaseUrl) }) { Text("Release page") }
-                            OutlinedButton(onClick = { viewModel.clearUpdateInfo() }) { Text("Dismiss") }
+                            OutlinedButton(onClick = { viewModel.openReleaseUrl(info.releaseUrl) }) { Text(stringResource(R.string.home_release_page)) }
+                            OutlinedButton(onClick = { viewModel.clearUpdateInfo() }) { Text(stringResource(R.string.action_dismiss)) }
                         }
                     }
                 }
@@ -376,8 +378,11 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                "GC Watch v${com.askew137.gcwatch.mobile.BuildConfig.VERSION_NAME} " +
-                    "(${com.askew137.gcwatch.mobile.BuildConfig.VERSION_CODE})",
+                stringResource(
+                    R.string.home_version_footer,
+                    com.askew137.gcwatch.mobile.BuildConfig.VERSION_NAME,
+                    com.askew137.gcwatch.mobile.BuildConfig.VERSION_CODE,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally),

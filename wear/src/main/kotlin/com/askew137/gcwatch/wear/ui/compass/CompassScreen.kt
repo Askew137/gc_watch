@@ -1,5 +1,7 @@
 package com.askew137.gcwatch.wear.ui.compass
 
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.wear.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
@@ -121,7 +123,7 @@ fun CompassScreen(
             onClick = {
                 autoCompass = !autoCompass
                 UiPrefs.setAutoCompassAtTarget(context, autoCompass)
-                hint = if (autoCompass) "U keše přepnout na kompas: zap" else "U keše přepnout na kompas: vyp"
+                hint = context.getString(if (autoCompass) R.string.compass_auto_on else R.string.compass_auto_off)
             },
             modifier = Modifier
                 .align(Alignment.CenterStart)
@@ -132,7 +134,7 @@ fun CompassScreen(
         ) {
             Icon(
                 if (autoCompass) Icons.Rounded.Flag else Icons.Rounded.OutlinedFlag,
-                contentDescription = "Automaticky na kompas u keše", modifier = Modifier.size(20.dp),
+                contentDescription = stringResource(R.string.compass_auto_desc), modifier = Modifier.size(20.dp),
                 tint = if (autoCompass) accentColor else Color.Gray,
             )
         }
@@ -160,7 +162,7 @@ fun CompassScreen(
                 .size(32.dp)
                 .background(Color.Black.copy(alpha = 0.55f), CircleShape),
         ) {
-            Icon(Icons.Rounded.Map, contentDescription = "Mapa", modifier = Modifier.size(20.dp), tint = accentColor)
+            Icon(Icons.Rounded.Map, contentDescription = stringResource(R.string.cd_map), modifier = Modifier.size(20.dp), tint = accentColor)
         }
 
         // ── Right edge: cardinal toggle ───────────────────────────────────────
@@ -175,7 +177,7 @@ fun CompassScreen(
         ) {
             Icon(
                 Icons.Rounded.Abc,
-                contentDescription = "Světové strany", modifier = Modifier.size(20.dp),
+                contentDescription = stringResource(R.string.cd_cardinals), modifier = Modifier.size(20.dp),
                 tint = if (showCardinals) accentColor else Color.Gray,
             )
         }
@@ -192,7 +194,7 @@ fun CompassScreen(
         ) {
             Icon(
                 if (keepScreenOn) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
-                contentDescription = "Nevypínat displej", modifier = Modifier.size(20.dp),
+                contentDescription = stringResource(R.string.cd_keep_screen_on), modifier = Modifier.size(20.dp),
                 tint = if (keepScreenOn) accentColor else Color.Gray,
             )
         }

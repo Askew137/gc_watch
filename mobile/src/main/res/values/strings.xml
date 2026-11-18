@@ -1,3 +1,179 @@
 <resources>
     <string name="app_name">GC Watch</string>
+
+    <!-- Common -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_ok">OK</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_keep">Keep</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_download">Download</string>
+    <string name="action_remove_from_phone">Remove from phone</string>
+    <string name="step_with_percent">%1$s %2$d %%</string>
+    <string name="step_unknown">%1$s…</string>
+
+    <!-- Home -->
+    <string name="home_watch_connected">Watch connected</string>
+    <string name="home_watch_searching">Looking for the watch…</string>
+    <string name="home_watch_none">No watch connected</string>
+    <string name="maps_routing_title">Maps &amp; Routing</string>
+    <string name="home_maps_subtitle">Manage map files and routing graphs</string>
+    <string name="settings_title">Settings</string>
+    <string name="home_settings_subtitle">Accent color, theme, units</string>
+    <string name="home_mismatch_versions">The watch runs %1$s, the phone %2$s.</string>
+    <string name="home_mismatch_no_report">The watch did not report its version (probably an older app).</string>
+    <string name="home_mismatch_hint">Different versions may not understand each other (targets, routes or settings can stop working).</string>
+    <string name="home_failed">Failed: %1$s</string>
+    <string name="home_confirm_on_watch">Open GC Watch on the watch and confirm the installation.</string>
+    <string name="home_align_versions">Bring both to the same version</string>
+    <string name="home_allow_install">Allow installing, then tap again</string>
+    <string name="home_check_update">Check for update</string>
+    <string name="home_checking">Checking…</string>
+    <string name="home_update_available">Update available: v%1$s</string>
+    <string name="home_update_confirm_both">Confirm the installation on the phone. Also confirm it on the watch (open GC Watch there).</string>
+    <string name="home_update_failed">Update failed: %1$s</string>
+    <string name="home_update_idle_inapp">Updates the phone and the watch (the watch must be connected).</string>
+    <string name="home_update_idle_page">Tap to open the GitHub release page.</string>
+    <string name="home_update_both">Update phone + watch</string>
+    <string name="home_release_page">Release page</string>
+    <string name="home_version_footer">GC Watch v%1$s (%2$s)</string>
+    <string name="check_up_to_date">Up to date: this is %1$s, the newest released version is %2$s. (Pre-releases are not offered.)</string>
+    <string name="check_failed">Could not reach the update server. Check the connection.</string>
+    <string name="update_release_load_failed">Could not load the release v%1$s (no connection to the update server, or that release does not exist)</string>
+
+    <!-- Settings -->
+    <string name="settings_accent">Accent Color</string>
+    <string name="settings_selected">Selected: %1$s</string>
+    <string name="accent_signal_green">Signal green</string>
+    <string name="accent_electric_cyan">Electric cyan</string>
+    <string name="accent_safety_orange">Safety orange</string>
+    <string name="accent_signal_gold">Signal gold</string>
+    <string name="accent_pure_white">Pure white</string>
+    <string name="accent_night_red">Night red</string>
+    <string name="settings_theme">Theme Mode</string>
+    <string name="theme_normal">Normal</string>
+    <string name="theme_night_red">Night Red</string>
+    <string name="settings_units">Distance Units</string>
+    <string name="units_metric">Metric (km)</string>
+    <string name="units_imperial">Imperial (mi)</string>
+    <string name="settings_gps">GPS Source</string>
+    <string name="settings_use_phone_gps">Use phone GPS</string>
+    <string name="settings_gps_desc">Phone Fused provides location via BT to watch; Watch Hardware uses the watch\'s own GPS.</string>
+
+    <!-- Maps screen -->
+    <string name="maps_remove_title">Remove %1$s from the phone?</string>
+    <string name="maps_remove_text">Only the phone\'s copy (%1$s) is deleted. A map already sent stays on the watch. You can add the file again later.</string>
+    <string name="maps_files_header">Map files (.map)</string>
+    <string name="maps_empty">No .map files yet. Add one below.</string>
+    <string name="maps_wifi_hint">Fast when the phone and the watch are on the same Wi-Fi</string>
+    <string name="maps_send">Send to watch</string>
+    <string name="maps_add">Add map file</string>
+    <string name="maps_copying">Copying %1$s…</string>
+    <string name="maps_where">Where to get map files</string>
+    <string name="maps_routes_ready">Routes: ready (%1$s)</string>
+    <string name="maps_routes_none">Routes: no routing data exists for this area (sea or not covered)</string>
+    <plurals name="maps_routes_need">
+        <item quantity="one">Routes need %1$d data tile (%2$s)%3$s</item>
+        <item quantity="other">Routes need %1$d data tiles (%2$s)%3$s</item>
+    </plurals>
+    <string name="maps_download_routing">Download routing data</string>
+    <string name="maps_download_routing_size">Download routing data (%1$s)</string>
+    <string name="maps_downloading_tile">Downloading %1$s…</string>
+    <string name="maps_downloading_tile_queued">Downloading %1$s… (%2$d more waiting)</string>
+    <string name="maps_nav_header">Navigation data (routes)</string>
+    <string name="maps_nav_desc">Routes on foot are computed on the phone from BRouter data. Download the tiles for the areas you play in. Only the phone needs them – nothing is sent to the watch.</string>
+    <string name="maps_missing_tile">The last route needs data that is not installed: %1$s</string>
+    <string name="maps_download_tile">Download %1$s</string>
+    <string name="maps_download_tile_size">Download %1$s (%2$s)</string>
+    <string name="maps_tile_downloading_pct">Downloading %1$d %% (%2$s)</string>
+    <string name="maps_tile_downloading">Downloading…</string>
+    <string name="maps_tile_installed">Installed, %1$s</string>
+    <string name="maps_tile_not_installed_size">Not installed, %1$s</string>
+    <string name="maps_tile_not_installed">Not installed</string>
+    <string name="maps_download_failed">Download failed: %1$s</string>
+    <string name="maps_other_title">Another area</string>
+    <string name="maps_other_desc">Other country? Enter a place as coordinates (lat, lon, e.g. 48.2, 16.4 for Vienna) or a tile name (e.g. E15_N45). Every tile is a 5°×5° square named by its south-west corner.</string>
+    <string name="maps_other_hint">48.2, 16.4  or  E15_N45</string>
+    <string name="maps_other_invalid">Not a valid tile or coordinates.</string>
+    <string name="maps_other_installed">%1$s is already installed.</string>
+    <string name="maps_other_tile">Tile %1$s</string>
+    <string name="maps_other_tile_size">Tile %1$s, %2$s</string>
+
+    <!-- Transfer card -->
+    <string name="transfer_sending">Sending %1$s to the watch</string>
+    <string name="transfer_asking">Asking the watch what it already has…</string>
+    <string name="transfer_progress">%1$d %%  ·  %2$s of %3$s</string>
+    <string name="transfer_speed">%1$s/s</string>
+    <string name="transfer_measuring">measuring speed…</string>
+    <string name="transfer_left">%1$s left</string>
+    <string name="transfer_wifi_info">Over Wi-Fi: the watch downloads the file from the phone. If it breaks, Retry resumes.</string>
+    <string name="transfer_bt_info">Over the slow Bluetooth link. %1$s</string>
+    <string name="transfer_bt_default_note">Put the phone and the watch on the same Wi-Fi to make it faster.</string>
+    <string name="transfer_confirming">Sent. Waiting for the watch to confirm the file…</string>
+    <string name="transfer_done">%1$s is on the watch</string>
+    <string name="transfer_done_detail">Confirmed by the watch (%1$s). You can remove the phone\'s copy to free space.</string>
+    <string name="transfer_failed">Sending %1$s failed</string>
+    <string name="transfer_retry">Retry (resumes)</string>
+
+    <!-- Map transfer service -->
+    <string name="notif_map_channel">Map Transfer</string>
+    <string name="notif_map_channel_desc">Shows progress while sending map files to the watch</string>
+    <string name="notif_map_sending">Sending map to the watch</string>
+    <string name="notif_map_failed">Map transfer failed</string>
+    <string name="notif_map_sent">Map sent to the watch</string>
+    <string name="map_default_name">map</string>
+    <string name="map_err_missing_file">The map file is missing on the phone</string>
+    <string name="map_err_bad_name">The file name \"%1$s\" is not a valid .map name</string>
+    <string name="map_err_not_connected">The watch is not connected</string>
+    <string name="map_err_no_answer">The watch did not answer. Open GC Watch on the watch (it must run the same version as the phone) and try again.</string>
+    <string name="map_err_no_space">There is not enough free space on the watch for this map</string>
+    <string name="map_err_no_confirm">The watch did not confirm the file. Open GC Watch on the watch and tap Retry (it resumes).</string>
+    <string name="map_err_incomplete">The file did not arrive completely. Tap Retry: it resumes where it stopped.</string>
+    <string name="map_err_stall_wifi">No data moved for %1$d s over Wi-Fi. Make sure the watch is on the same Wi-Fi and awake, then tap Retry (it resumes).</string>
+    <string name="map_err_stall">No data moved for %1$d s: the connection to the watch is too weak or the watch app stopped</string>
+    <string name="map_err_seek">Cannot seek in %1$s</string>
+    <string name="map_err_timeout">The watch did not respond in time. Open GC Watch on the watch and try again.</string>
+    <string name="map_err_interrupted">The connection to the watch was interrupted (%1$s). Tap Retry: it resumes where it stopped.</string>
+    <string name="map_note_no_wifi">The phone is not connected to Wi-Fi (or it has no usable address).</string>
+    <string name="map_note_no_connect">Wi-Fi not used: the watch did not connect to %1$s within %2$d s (different network, or the router isolates devices).</string>
+    <string name="map_note_wifi_reason">Wi-Fi not used: %1$s</string>
+    <string name="map_note_unreachable">the watch could not reach the phone</string>
+
+    <!-- Segment download service -->
+    <string name="notif_seg_channel">Navigation data</string>
+    <string name="notif_seg_title">Downloading navigation data</string>
+    <string name="seg_err_http">HTTP %1$d</string>
+    <string name="seg_err_empty">Empty response</string>
+    <string name="seg_err_space">Not enough free space (%1$d MB needed)</string>
+    <string name="seg_err_incomplete">Incomplete download (%1$d of %2$d bytes)</string>
+    <string name="seg_err_store">Could not store the file</string>
+
+    <!-- App updater -->
+    <string name="step_starting">Starting</string>
+    <string name="step_download_phone">Downloading phone app</string>
+    <string name="step_download_watch">Downloading watch app</string>
+    <string name="step_sending_watch">Sending to the watch</string>
+    <string name="step_sending_watch_wifi">Sending to the watch (Wi-Fi)</string>
+    <string name="step_waiting_confirm">Waiting for the watch to confirm</string>
+    <string name="update_err_no_apks">The release has no APK files</string>
+    <string name="update_err_phone_rejected">Phone APK rejected: %1$s</string>
+    <string name="update_err_wrong_package">Watch APK has the wrong package</string>
+    <string name="update_err_http">Download failed: HTTP %1$d</string>
+    <string name="update_err_empty">Empty download</string>
+    <string name="update_err_incomplete">Incomplete download</string>
+    <string name="update_err_interrupted">The transfer to the watch was interrupted (%1$s). Open GC Watch on the watch, keep the watch awake and close to the phone, and try again.</string>
+    <string name="update_err_timeout">The watch did not confirm the file in time. Open GC Watch on the watch and try again.</string>
+    <string name="update_err_stall_wifi">No data moved for %1$d s over Wi-Fi: keep the watch awake and on the same Wi-Fi, then try again</string>
+    <string name="update_err_confirm_timeout">The watch did not confirm the update in time</string>
+    <string name="update_err_not_connected">The watch is not connected</string>
+    <string name="update_err_stall">The watch is not receiving the file (no data moved for %1$d s). Open GC Watch on the watch, keep it awake and close to the phone, and try again.</string>
+
+    <!-- Geo link handler -->
+    <string name="geo_no_location">GC Watch: the link has no location</string>
+    <string name="geo_bad_coords">GC Watch: could not read coordinates from the link</string>
+    <string name="geo_not_connected">GC Watch: the watch is not connected, target not sent</string>
+    <string name="geo_sent">Sent to the watch: %1$s</string>
+    <string name="geo_failed">GC Watch: sending to the watch failed (%1$s)</string>
 </resources>

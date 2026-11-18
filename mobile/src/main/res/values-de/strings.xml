@@ -1,0 +1,177 @@
+<resources>
+    <!-- Common -->
+    <string name="action_back">Zurück</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_dismiss">Schließen</string>
+    <string name="action_ok">OK</string>
+    <string name="action_remove">Entfernen</string>
+    <string name="action_keep">Behalten</string>
+    <string name="action_delete">Löschen</string>
+    <string name="action_download">Herunterladen</string>
+    <string name="action_remove_from_phone">Vom Telefon entfernen</string>
+    <string name="step_with_percent">%1$s %2$d %%</string>
+    <string name="step_unknown">%1$s…</string>
+
+    <!-- Home -->
+    <string name="home_watch_connected">Uhr verbunden</string>
+    <string name="home_watch_searching">Suche nach der Uhr…</string>
+    <string name="home_watch_none">Keine Uhr verbunden</string>
+    <string name="maps_routing_title">Karten &amp; Routing</string>
+    <string name="home_maps_subtitle">Kartendateien und Routingdaten verwalten</string>
+    <string name="settings_title">Einstellungen</string>
+    <string name="home_settings_subtitle">Akzentfarbe, Design, Einheiten</string>
+    <string name="home_mismatch_versions">Die Uhr hat Version %1$s, das Telefon %2$s.</string>
+    <string name="home_mismatch_no_report">Die Uhr hat ihre Version nicht gemeldet (wahrscheinlich eine ältere App).</string>
+    <string name="home_mismatch_hint">Unterschiedliche Versionen verstehen sich eventuell nicht (Ziele, Routen oder Einstellungen können nicht mehr funktionieren).</string>
+    <string name="home_failed">Fehlgeschlagen: %1$s</string>
+    <string name="home_confirm_on_watch">Öffne GC Watch auf der Uhr und bestätige die Installation.</string>
+    <string name="home_align_versions">Beide auf dieselbe Version bringen</string>
+    <string name="home_allow_install">Installation erlauben, dann erneut tippen</string>
+    <string name="home_check_update">Nach Update suchen</string>
+    <string name="home_checking">Prüfe…</string>
+    <string name="home_update_available">Update verfügbar: v%1$s</string>
+    <string name="home_update_confirm_both">Bestätige die Installation auf dem Telefon. Bestätige sie auch auf der Uhr (öffne dort GC Watch).</string>
+    <string name="home_update_failed">Update fehlgeschlagen: %1$s</string>
+    <string name="home_update_idle_inapp">Aktualisiert Telefon und Uhr (die Uhr muss verbunden sein).</string>
+    <string name="home_update_idle_page">Tippen, um die GitHub-Release-Seite zu öffnen.</string>
+    <string name="home_update_both">Telefon + Uhr aktualisieren</string>
+    <string name="home_release_page">Release-Seite</string>
+    <string name="home_version_footer">GC Watch v%1$s (%2$s)</string>
+    <string name="check_up_to_date">Aktuell: installiert ist %1$s, die neueste veröffentlichte Version ist %2$s. (Vorabversionen werden nicht angeboten.)</string>
+    <string name="check_failed">Der Update-Server ist nicht erreichbar. Prüfe die Verbindung.</string>
+    <string name="update_release_load_failed">Das Release v%1$s konnte nicht geladen werden (keine Verbindung zum Update-Server, oder dieses Release existiert nicht)</string>
+
+    <!-- Settings -->
+    <string name="settings_accent">Akzentfarbe</string>
+    <string name="settings_selected">Ausgewählt: %1$s</string>
+    <string name="accent_signal_green">Signalgrün</string>
+    <string name="accent_electric_cyan">Elektrisches Cyan</string>
+    <string name="accent_safety_orange">Warnorange</string>
+    <string name="accent_signal_gold">Signalgold</string>
+    <string name="accent_pure_white">Reinweiß</string>
+    <string name="accent_night_red">Nachtrot</string>
+    <string name="settings_theme">Designmodus</string>
+    <string name="theme_normal">Normal</string>
+    <string name="theme_night_red">Nachtrot</string>
+    <string name="settings_units">Entfernungseinheiten</string>
+    <string name="units_metric">Metrisch (km)</string>
+    <string name="units_imperial">Imperial (mi)</string>
+    <string name="settings_gps">GPS-Quelle</string>
+    <string name="settings_use_phone_gps">GPS des Telefons verwenden</string>
+    <string name="settings_gps_desc">Phone Fused liefert die Position per Bluetooth an die Uhr; Watch Hardware nutzt das eigene GPS der Uhr.</string>
+
+    <!-- Maps screen -->
+    <string name="maps_remove_title">%1$s vom Telefon entfernen?</string>
+    <string name="maps_remove_text">Nur die Kopie auf dem Telefon (%1$s) wird gelöscht. Eine bereits gesendete Karte bleibt auf der Uhr. Du kannst die Datei später wieder hinzufügen.</string>
+    <string name="maps_files_header">Kartendateien (.map)</string>
+    <string name="maps_empty">Noch keine .map-Dateien. Füge unten eine hinzu.</string>
+    <string name="maps_wifi_hint">Schnell, wenn Telefon und Uhr im selben WLAN sind</string>
+    <string name="maps_send">An Uhr senden</string>
+    <string name="maps_add">Kartendatei hinzufügen</string>
+    <string name="maps_copying">Kopiere %1$s…</string>
+    <string name="maps_where">Wo es Kartendateien gibt</string>
+    <string name="maps_routes_ready">Routen: bereit (%1$s)</string>
+    <string name="maps_routes_none">Routen: Für dieses Gebiet gibt es keine Routingdaten (Meer oder nicht abgedeckt)</string>
+    <plurals name="maps_routes_need">
+        <item quantity="one">Routen benötigen %1$d Datenkachel (%2$s)%3$s</item>
+        <item quantity="other">Routen benötigen %1$d Datenkacheln (%2$s)%3$s</item>
+    </plurals>
+    <string name="maps_download_routing">Routingdaten herunterladen</string>
+    <string name="maps_download_routing_size">Routingdaten herunterladen (%1$s)</string>
+    <string name="maps_downloading_tile">Lade %1$s herunter…</string>
+    <string name="maps_downloading_tile_queued">Lade %1$s herunter… (%2$d weitere warten)</string>
+    <string name="maps_nav_header">Navigationsdaten (Routen)</string>
+    <string name="maps_nav_desc">Fußrouten werden auf dem Telefon aus BRouter-Daten berechnet. Lade die Kacheln für die Gebiete herunter, in denen du spielst. Nur das Telefon braucht sie – auf die Uhr wird nichts gesendet.</string>
+    <string name="maps_missing_tile">Die letzte Route benötigt Daten, die nicht installiert sind: %1$s</string>
+    <string name="maps_download_tile">%1$s herunterladen</string>
+    <string name="maps_download_tile_size">%1$s herunterladen (%2$s)</string>
+    <string name="maps_tile_downloading_pct">Lade herunter %1$d %% (%2$s)</string>
+    <string name="maps_tile_downloading">Lade herunter…</string>
+    <string name="maps_tile_installed">Installiert, %1$s</string>
+    <string name="maps_tile_not_installed_size">Nicht installiert, %1$s</string>
+    <string name="maps_tile_not_installed">Nicht installiert</string>
+    <string name="maps_download_failed">Download fehlgeschlagen: %1$s</string>
+    <string name="maps_other_title">Anderes Gebiet</string>
+    <string name="maps_other_desc">Anderes Land? Gib einen Ort als Koordinaten ein (Breite, Länge, z. B. 48.2, 16.4 für Wien) oder einen Kachelnamen (z. B. E15_N45). Jede Kachel ist ein 5°×5°-Quadrat, benannt nach seiner Südwestecke.</string>
+    <string name="maps_other_hint">48.2, 16.4  oder  E15_N45</string>
+    <string name="maps_other_invalid">Keine gültige Kachel oder Koordinaten.</string>
+    <string name="maps_other_installed">%1$s ist bereits installiert.</string>
+    <string name="maps_other_tile">Kachel %1$s</string>
+    <string name="maps_other_tile_size">Kachel %1$s, %2$s</string>
+
+    <!-- Transfer card -->
+    <string name="transfer_sending">Sende %1$s an die Uhr</string>
+    <string name="transfer_asking">Frage die Uhr, was sie schon hat…</string>
+    <string name="transfer_progress">%1$d %%  ·  %2$s von %3$s</string>
+    <string name="transfer_speed">%1$s/s</string>
+    <string name="transfer_measuring">Geschwindigkeit wird gemessen…</string>
+    <string name="transfer_left">noch %1$s</string>
+    <string name="transfer_wifi_info">Über WLAN: Die Uhr lädt die Datei vom Telefon herunter. Bei einem Abbruch setzt „Erneut versuchen“ fort.</string>
+    <string name="transfer_bt_info">Über die langsame Bluetooth-Verbindung. %1$s</string>
+    <string name="transfer_bt_default_note">Verbinde Telefon und Uhr mit demselben WLAN, damit es schneller geht.</string>
+    <string name="transfer_confirming">Gesendet. Warte auf die Bestätigung der Uhr…</string>
+    <string name="transfer_done">%1$s ist auf der Uhr</string>
+    <string name="transfer_done_detail">Von der Uhr bestätigt (%1$s). Du kannst die Kopie auf dem Telefon entfernen, um Speicher freizugeben.</string>
+    <string name="transfer_failed">Senden von %1$s fehlgeschlagen</string>
+    <string name="transfer_retry">Erneut versuchen (setzt fort)</string>
+
+    <!-- Map transfer service -->
+    <string name="notif_map_channel">Kartenübertragung</string>
+    <string name="notif_map_channel_desc">Zeigt den Fortschritt beim Senden von Kartendateien an die Uhr</string>
+    <string name="notif_map_sending">Sende Karte an die Uhr</string>
+    <string name="notif_map_failed">Kartenübertragung fehlgeschlagen</string>
+    <string name="notif_map_sent">Karte an die Uhr gesendet</string>
+    <string name="map_default_name">Karte</string>
+    <string name="map_err_missing_file">Die Kartendatei fehlt auf dem Telefon</string>
+    <string name="map_err_bad_name">Der Dateiname „%1$s“ ist kein gültiger .map-Name</string>
+    <string name="map_err_not_connected">Die Uhr ist nicht verbunden</string>
+    <string name="map_err_no_answer">Die Uhr hat nicht geantwortet. Öffne GC Watch auf der Uhr (sie muss dieselbe Version wie das Telefon haben) und versuche es erneut.</string>
+    <string name="map_err_no_space">Auf der Uhr ist nicht genug freier Speicher für diese Karte</string>
+    <string name="map_err_no_confirm">Die Uhr hat die Datei nicht bestätigt. Öffne GC Watch auf der Uhr und tippe auf „Erneut versuchen“ (setzt fort).</string>
+    <string name="map_err_incomplete">Die Datei ist nicht vollständig angekommen. Tippe auf „Erneut versuchen“: Es geht dort weiter, wo es aufgehört hat.</string>
+    <string name="map_err_stall_wifi">%1$d s lang wurden über WLAN keine Daten übertragen. Stelle sicher, dass die Uhr im selben WLAN und nicht im Ruhezustand ist, und tippe auf „Erneut versuchen“ (setzt fort).</string>
+    <string name="map_err_stall">%1$d s lang wurden keine Daten übertragen: Die Verbindung zur Uhr ist zu schwach oder die Uhr-App wurde beendet</string>
+    <string name="map_err_seek">In %1$s kann nicht gesprungen werden</string>
+    <string name="map_err_timeout">Die Uhr hat nicht rechtzeitig reagiert. Öffne GC Watch auf der Uhr und versuche es erneut.</string>
+    <string name="map_err_interrupted">Die Verbindung zur Uhr wurde unterbrochen (%1$s). Tippe auf „Erneut versuchen“: Es geht dort weiter, wo es aufgehört hat.</string>
+    <string name="map_note_no_wifi">Das Telefon ist nicht mit einem WLAN verbunden (oder hat keine nutzbare Adresse).</string>
+    <string name="map_note_no_connect">WLAN nicht genutzt: Die Uhr hat sich innerhalb von %2$d s nicht mit %1$s verbunden (anderes Netzwerk, oder der Router isoliert Geräte).</string>
+    <string name="map_note_wifi_reason">WLAN nicht genutzt: %1$s</string>
+    <string name="map_note_unreachable">die Uhr konnte das Telefon nicht erreichen</string>
+
+    <!-- Segment download service -->
+    <string name="notif_seg_channel">Navigationsdaten</string>
+    <string name="notif_seg_title">Lade Navigationsdaten herunter</string>
+    <string name="seg_err_http">HTTP %1$d</string>
+    <string name="seg_err_empty">Leere Antwort</string>
+    <string name="seg_err_space">Nicht genug freier Speicher (%1$d MB nötig)</string>
+    <string name="seg_err_incomplete">Unvollständiger Download (%1$d von %2$d Bytes)</string>
+    <string name="seg_err_store">Die Datei konnte nicht gespeichert werden</string>
+
+    <!-- App updater -->
+    <string name="step_starting">Starte</string>
+    <string name="step_download_phone">Lade Telefon-App herunter</string>
+    <string name="step_download_watch">Lade Uhr-App herunter</string>
+    <string name="step_sending_watch">Sende an die Uhr</string>
+    <string name="step_sending_watch_wifi">Sende an die Uhr (WLAN)</string>
+    <string name="step_waiting_confirm">Warte auf die Bestätigung der Uhr</string>
+    <string name="update_err_no_apks">Das Release enthält keine APK-Dateien</string>
+    <string name="update_err_phone_rejected">Telefon-APK abgelehnt: %1$s</string>
+    <string name="update_err_wrong_package">Die Uhr-APK hat das falsche Paket</string>
+    <string name="update_err_http">Download fehlgeschlagen: HTTP %1$d</string>
+    <string name="update_err_empty">Leerer Download</string>
+    <string name="update_err_incomplete">Unvollständiger Download</string>
+    <string name="update_err_interrupted">Die Übertragung an die Uhr wurde unterbrochen (%1$s). Öffne GC Watch auf der Uhr, halte sie wach und nah am Telefon und versuche es erneut.</string>
+    <string name="update_err_timeout">Die Uhr hat die Datei nicht rechtzeitig bestätigt. Öffne GC Watch auf der Uhr und versuche es erneut.</string>
+    <string name="update_err_stall_wifi">%1$d s lang wurden über WLAN keine Daten übertragen: Halte die Uhr wach und im selben WLAN und versuche es erneut</string>
+    <string name="update_err_confirm_timeout">Die Uhr hat das Update nicht rechtzeitig bestätigt</string>
+    <string name="update_err_not_connected">Die Uhr ist nicht verbunden</string>
+    <string name="update_err_stall">Die Uhr empfängt die Datei nicht (%1$d s lang wurden keine Daten übertragen). Öffne GC Watch auf der Uhr, halte sie wach und nah am Telefon und versuche es erneut.</string>
+
+    <!-- Geo link handler -->
+    <string name="geo_no_location">GC Watch: Der Link enthält keinen Ort</string>
+    <string name="geo_bad_coords">GC Watch: Koordinaten konnten nicht aus dem Link gelesen werden</string>
+    <string name="geo_not_connected">GC Watch: Die Uhr ist nicht verbunden, Ziel nicht gesendet</string>
+    <string name="geo_sent">An die Uhr gesendet: %1$s</string>
+    <string name="geo_failed">GC Watch: Senden an die Uhr fehlgeschlagen (%1$s)</string>
+</resources>

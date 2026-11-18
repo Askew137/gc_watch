@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.askew137.gcwatch.core.model.AppConfig
+import com.askew137.gcwatch.mobile.R
 import com.askew137.gcwatch.mobile.maps.CopyProgress
 import com.askew137.gcwatch.mobile.maps.MapFileRepository
 import com.askew137.gcwatch.mobile.maps.MapTransferService
@@ -198,7 +199,7 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val release = UpdateChecker.releaseFor(targetName)
             if (release == null) {
-                AppUpdater.fail("Could not load the release v$targetName (no connection to the update server, or that release does not exist)")
+                AppUpdater.fail(app.getString(R.string.update_release_load_failed, targetName))
             } else {
                 AppUpdater.catchUp(app, release, updateWatch = !phoneBehind, updatePhone = phoneBehind)
             }
@@ -234,11 +235,10 @@ class MobileViewModel(application: Application) : AndroidViewModel(application) 
                     is com.askew137.gcwatch.mobile.update.CheckResult.UpToDate -> {
                         _updateInfo.value = null
                         if (manual) _checkMessage.value =
-                            "Up to date: this is $versionName, the newest released version is ${result.latestVersion}. " +
-                                "(Pre-releases are not offered.)"
+                            app.getString(R.string.check_up_to_date, versionName, result.latestVersion)
                     }
                     com.askew137.gcwatch.mobile.update.CheckResult.Failed -> {
-                        if (manual) _checkMessage.value = "Could not reach the update server. Check the connection."
+                        if (manual) _checkMessage.value = app.getString(R.string.check_failed)
                     }
                 }
             } finally {

@@ -1,5 +1,7 @@
 package com.askew137.gcwatch.wear.ui.compass
 
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.wear.R
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -39,6 +41,8 @@ fun CompassCanvas(
     modifier: Modifier = Modifier,
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val northLabel = stringResource(R.string.cardinal_n)
+    val cardinalLabels = listOf(northLabel, stringResource(R.string.cardinal_e), stringResource(R.string.cardinal_s), stringResource(R.string.cardinal_w))
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val radius = min(size.width, size.height) / 2f
@@ -56,7 +60,7 @@ fun CompassCanvas(
 
         // ── Cardinal labels ──────────────────────────────────────────────────
         if (showCardinals) {
-            val cardinals = listOf("N" to 0f, "E" to 90f, "S" to 180f, "W" to 270f)
+            val cardinals = cardinalLabels.zip(listOf(0f, 90f, 180f, 270f))
             val labelRadius = radius - 14.dp.toPx()
             cardinals.forEach { (label, angleDeg) ->
                 val rotated = (angleDeg - azimuthDeg + 360f) % 360f
@@ -67,7 +71,7 @@ fun CompassCanvas(
                 val measured = textMeasurer.measure(
                     text = label,
                     style = TextStyle(
-                        color = if (label == "N") accentColor else Color.White.copy(alpha = 0.6f),
+                        color = if (label == northLabel) accentColor else Color.White.copy(alpha = 0.6f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                     ),

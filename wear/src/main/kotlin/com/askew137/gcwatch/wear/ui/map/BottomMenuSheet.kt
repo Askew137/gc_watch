@@ -1,5 +1,7 @@
 package com.askew137.gcwatch.wear.ui.map
 
+import androidx.compose.ui.res.stringResource
+import com.askew137.gcwatch.wear.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -79,7 +81,7 @@ fun BottomMenuSheet(
 
     // The system back gesture closes the sheet instead of leaving the screen.
     androidx.activity.compose.BackHandler(onBack = onDismiss)
-    val tabs = listOf("Mapy", "Vzhled", "Ostatní")
+    val tabs = listOf(stringResource(R.string.tab_maps), stringResource(R.string.tab_look), stringResource(R.string.tab_other))
 
     // Swipe right to close (the standard Wear gesture); without this wrapper the swipe would
     // be handled by the navigation host and leave the screen / the app.
@@ -170,7 +172,7 @@ private fun MapyTab(
         ToggleChip(
             checked = automatic,
             onCheckedChange = { onSelectionChange(selectedMaps, it) },
-            label = { Text("Auto podle polohy", fontSize = 11.sp, maxLines = 1) },
+            label = { Text(stringResource(R.string.maps_auto), fontSize = 11.sp, maxLines = 1) },
             toggleControl = { Switch(checked = automatic) },
             modifier = Modifier.fillMaxWidth(),
             colors = ToggleChipDefaults.toggleChipColors(
@@ -220,7 +222,7 @@ private fun MapyTab(
             if (!deleting) {
                 Chip(
                     onClick = { deleting = true; toDelete = emptySet(); confirming = false },
-                    label = { Text("Smazat mapy…", fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                    label = { Text(stringResource(R.string.maps_delete), fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
                     colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -238,9 +240,9 @@ private fun MapyTab(
                     label = {
                         Text(
                             when {
-                                ticked.isEmpty() -> "Zaškrtni mapy ke smazání"
-                                confirming -> "Opravdu smazat ${ticked.size}? (klepni znovu)"
-                                else -> "Smazat vybrané (${ticked.size})"
+                                ticked.isEmpty() -> stringResource(R.string.maps_tick_to_delete)
+                                confirming -> stringResource(R.string.maps_confirm_delete, ticked.size)
+                                else -> stringResource(R.string.maps_delete_selected, ticked.size)
                             },
                             fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
                         )
@@ -251,7 +253,7 @@ private fun MapyTab(
                 Spacer(Modifier.height(4.dp))
                 Chip(
                     onClick = { deleting = false; confirming = false; toDelete = emptySet() },
-                    label = { Text("Zrušit", fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                    label = { Text(stringResource(R.string.cancel), fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
                     colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -274,7 +276,7 @@ private fun GivenThemeTab(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.verticalScroll(rememberScrollState()),
     ) {
-        Text("Akcent", fontSize = 10.sp, color = Color.Gray)
+        Text(stringResource(R.string.look_accent), fontSize = 10.sp, color = Color.Gray)
         Spacer(Modifier.height(4.dp))
         AccentColor.entries.chunked(3).forEach { rowColors ->
             Row(
@@ -298,7 +300,7 @@ private fun GivenThemeTab(
             }
         }
         Spacer(Modifier.height(4.dp))
-        Text("Téma", fontSize = 10.sp, color = Color.Gray)
+        Text(stringResource(R.string.look_theme), fontSize = 10.sp, color = Color.Gray)
         Spacer(Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ThemeMode.entries.forEach { mode ->
@@ -306,7 +308,7 @@ private fun GivenThemeTab(
                     onClick = { onConfigChange(config.copy(themeMode = mode)) },
                     label = {
                         Text(
-                            text = if (mode == ThemeMode.NORMAL) "Normální" else "Noční",
+                            text = stringResource(if (mode == ThemeMode.NORMAL) R.string.theme_normal else R.string.theme_night),
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
@@ -347,7 +349,7 @@ private fun OstatniTab(
                     onClick = { onConfigChange(config.copy(units = units)) },
                     label = {
                         Text(
-                            text = if (units == Units.METRIC) "Metry" else "Míle",
+                            text = stringResource(if (units == Units.METRIC) R.string.units_metric else R.string.units_imperial),
                             fontSize = 10.sp,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
@@ -366,12 +368,12 @@ private fun OstatniTab(
         Spacer(Modifier.height(8.dp))
         // Cone reaction: three positions (fast / normal / frugal), shown from slow to fast.
         val reactions = com.askew137.gcwatch.wear.ui.HeadingReaction.entries.reversed() // ECO, NORMAL, FAST
-        Text("Reakce kuželu: ${reaction.label}", fontSize = 11.sp, color = Color.White)
+        Text(stringResource(R.string.reaction_label, stringResource(reaction.labelRes)), fontSize = 11.sp, color = Color.White)
         InlineSlider(
             value = reactions.indexOf(reaction).toFloat(),
             onValueChange = { onReactionChange(reactions[it.toInt().coerceIn(0, reactions.lastIndex)]) },
-            increaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Add, "Rychleji", Modifier.size(18.dp)) },
-            decreaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Remove, "Pomaleji", Modifier.size(18.dp)) },
+            increaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Add, stringResource(R.string.cd_faster), Modifier.size(18.dp)) },
+            decreaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Remove, stringResource(R.string.cd_slower), Modifier.size(18.dp)) },
             valueRange = 0f..2f,
             steps = 1,
         )
@@ -380,12 +382,12 @@ private fun OstatniTab(
         val minS = com.askew137.gcwatch.wear.ui.UiPrefs.AMBIENT_GPS_MIN_S
         val maxS = com.askew137.gcwatch.wear.ui.UiPrefs.AMBIENT_GPS_MAX_S
         val stepS = com.askew137.gcwatch.wear.ui.UiPrefs.AMBIENT_GPS_STEP_S
-        Text("GPS při zhasnutí: každých $ambientGpsSeconds s", fontSize = 11.sp, color = Color.White)
+        Text(stringResource(R.string.ambient_gps_label, ambientGpsSeconds), fontSize = 11.sp, color = Color.White)
         InlineSlider(
             value = ambientGpsSeconds.toFloat(),
             onValueChange = { onAmbientGpsSecondsChange((Math.round(it / stepS) * stepS).coerceIn(minS, maxS)) },
-            increaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Add, "Méně často", Modifier.size(18.dp)) },
-            decreaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Remove, "Častěji", Modifier.size(18.dp)) },
+            increaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Add, stringResource(R.string.cd_less_often), Modifier.size(18.dp)) },
+            decreaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Remove, stringResource(R.string.cd_more_often), Modifier.size(18.dp)) },
             valueRange = minS.toFloat()..maxS.toFloat(),
             steps = (maxS - minS) / stepS - 1,
         )
@@ -394,22 +396,22 @@ private fun OstatniTab(
         val choices = com.askew137.gcwatch.wear.ui.UiPrefs.SERVICE_TIMEOUT_CHOICES_H
         val idx = choices.indexOf(serviceTimeoutHours).coerceAtLeast(0)
         Text(
-            if (serviceTimeoutHours == 0) "Služba na pozadí: neomezeně"
-            else "Vypnout GPS na pozadí po $serviceTimeoutHours h",
+            if (serviceTimeoutHours == 0) stringResource(R.string.service_unlimited)
+            else stringResource(R.string.service_timeout_label, serviceTimeoutHours),
             fontSize = 11.sp, color = Color.White,
         )
         InlineSlider(
             value = idx.toFloat(),
             onValueChange = { onServiceTimeoutChange(choices[it.toInt().coerceIn(0, choices.lastIndex)]) },
-            increaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Add, "Déle", Modifier.size(18.dp)) },
-            decreaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Remove, "Dříve", Modifier.size(18.dp)) },
+            increaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Add, stringResource(R.string.cd_longer), Modifier.size(18.dp)) },
+            decreaseIcon = { Icon(androidx.compose.material.icons.Icons.Rounded.Remove, stringResource(R.string.cd_sooner), Modifier.size(18.dp)) },
             valueRange = 0f..(choices.lastIndex).toFloat(),
             steps = choices.size - 2,
         )
-        Text("od odchodu z aplikace", fontSize = 9.sp, color = Color.Gray)
+        Text(stringResource(R.string.service_timeout_note), fontSize = 9.sp, color = Color.Gray)
         Spacer(Modifier.height(10.dp))
         Text(
-            "GC Watch v${com.askew137.gcwatch.wear.BuildConfig.VERSION_NAME} (${com.askew137.gcwatch.wear.BuildConfig.VERSION_CODE})",
+            stringResource(R.string.version_label, com.askew137.gcwatch.wear.BuildConfig.VERSION_NAME, com.askew137.gcwatch.wear.BuildConfig.VERSION_CODE),
             fontSize = 10.sp,
             color = Color.Gray,
         )
