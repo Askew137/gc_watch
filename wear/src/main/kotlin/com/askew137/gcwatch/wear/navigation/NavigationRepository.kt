@@ -50,6 +50,11 @@ class NavigationRepository(private val context: Context) {
     private val _lineMode = MutableStateFlow(TargetLineMode.AIR_LINE)
     val lineMode: StateFlow<TargetLineMode> = _lineMode.asStateFlow()
 
+    /** Debug builds only (see `gcwatch.debugTarget`): a target without a phone. */
+    fun debugSetTarget(lat: Double, lon: Double) {
+        _activeTarget.value = Waypoint(lat, lon, label = "debug", code = "GCDEBUG")
+    }
+
     /** Called by [WearMessageService] when SET_TARGET arrives. */
     fun onSetTarget(bytes: ByteArray) {
         try {
@@ -142,6 +147,14 @@ class NavigationRepository(private val context: Context) {
             TargetLineMode.OFF -> TargetLineMode.AIR_LINE
         }
         _lineMode.value = next
+        // Choosing the route asks the phone for a fresh one from where the wearer is now (the old one stays on
+        // the screen until the new one arrives); with no route yet, a tap tries again.
+        val target = _activeTarget.value
+        if (target != null && !_routePending.value &&
+            (next == TargetLineMode.ROUTE || (_currentRoute.value == null && next == TargetLineMode.OFF))
+        ) {
+            _routeRequestNeeded.value = target
+        }
         Timber.d("NavigationRepository: line mode -> %s", next)
         return next
     }

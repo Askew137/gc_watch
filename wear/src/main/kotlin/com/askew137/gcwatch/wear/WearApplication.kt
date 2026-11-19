@@ -44,6 +44,10 @@ class WearApplication : Application() {
             Timber.plant(Timber.DebugTree())
         }
         restorePendingUpdate()
+        if (BuildConfig.DEBUG && BuildConfig.DEBUG_TARGET.contains(",")) {
+            val (la, lo) = BuildConfig.DEBUG_TARGET.split(",").map { it.trim().toDouble() }
+            navigationRepository.debugSetTarget(la, lo)
+        }
         arrivalMonitor.start()
         Thread { com.askew137.gcwatch.wear.navigation.MapReceiver(this).cleanupStale() }.start()
     }

@@ -175,4 +175,7 @@
     <string name="geo_failed">GC Watch: odeslání do hodinek selhalo (%1$s)</string>
     <string name="language_title">Jazyk</string>
     <string name="language_system">Podle systému</string>
+    <string name="why_no_lan_address">Telefon nemá adresu na Wi-Fi ani hotspotu</string>
+    <string name="why_watch_no_connect">Hodinky se k telefonu přes Wi-Fi včas nedostaly (jsou na stejné Wi-Fi nebo na hotspotu telefonu?)</string>
+    <string name="step_sending_watch_why">Posílám do hodinek přes Bluetooth (pomalu): %1$s</string>
 </resources>

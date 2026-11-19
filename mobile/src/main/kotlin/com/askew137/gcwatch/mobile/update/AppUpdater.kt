@@ -224,8 +224,18 @@ object AppUpdater {
      * Data Layer channel moves only a few KB/s). Returns true when the watch confirmed the file; false when
      * it could not reach the phone, so the caller falls back to the channel.
      */
+    private fun channelStepText(): String =
+        lanWhyNot?.let { text(R.string.step_sending_watch_why, it) } ?: text(R.string.step_sending_watch)
+
+    /** Why the last [viaLan] gave up (shown while the slow Bluetooth path runs). */
+    @Volatile private var lanWhyNot: String? = null
+
     private suspend fun viaLan(context: Context, apk: File, nodeId: String, ack: CompletableDeferred<Unit>): Boolean {
-        val lan = LanAddress.find(context) ?: return false
+        lanWhyNot = null
+        val lan = LanAddress.find(context) ?: run {
+            lanWhyNot = text(R.string.why_no_lan_address)
+            return false
+        }
         val failure = CompletableDeferred<String>().also { lanFailure = it }
         val token = LanAddress.token()
         val server = MapHttpServer(apk, token)
@@ -242,11 +252,13 @@ object AppUpdater {
                 delay(500)
                 if (failure.isCompleted) {
                     Timber.i("Update over Wi-Fi not possible: %s", failure.getCompleted())
+                    lanWhyNot = failure.getCompleted()
                     return false
                 }
                 val now = SystemClock.elapsedRealtime()
                 if (!server.contacted && now - began > 20_000) {
                     Timber.i("The watch did not connect to the phone over Wi-Fi within 20 s")
+                    lanWhyNot = text(R.string.why_watch_no_connect)
                     return false
                 }
                 val served = server.servedUpTo.get()
@@ -281,7 +293,7 @@ object AppUpdater {
         val lastProgress = AtomicLong(System.currentTimeMillis())
         val stalled = AtomicBoolean(false)
         val finished = AtomicBoolean(false)
-        _state.value = State.Working(text(R.string.step_sending_watch), 0)
+        _state.value = State.Working(channelStepText(), 0)
         try {
             coroutineScope {
                 // A blocked write cannot be interrupted, only ended by closing the channel: the
@@ -317,7 +329,7 @@ object AppUpdater {
                                     val percent = (written * 100 / total).toInt()
                                     if (percent != lastPercent) {
                                         lastPercent = percent
-                                        _state.value = State.Working(text(R.string.step_sending_watch), percent)
+                                        _state.value = State.Working(channelStepText(), percent)
                                     }
                                 }
                             }

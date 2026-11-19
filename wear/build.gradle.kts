@@ -20,6 +20,8 @@ android {
         versionCode = providers.gradleProperty("gcwatch.versionCode").get().toInt()
         versionName = providers.gradleProperty("gcwatch.versionName").get()
         // Test hook: > 0 makes the background-service timeout fire after this many SECONDS (emulator tests only).
+        // Test hook: "lat,lon" sets this target at start (emulator tests only; empty = off).
+        buildConfigField("String", "DEBUG_TARGET", "\"" + (providers.gradleProperty("gcwatch.debugTarget").orNull ?: "") + "\"")
         buildConfigField("int", "SERVICE_TIMEOUT_TEST_S", (providers.gradleProperty("gcwatch.serviceTimeoutTestSeconds").orNull ?: "0"))
     }
 

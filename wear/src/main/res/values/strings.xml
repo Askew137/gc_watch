@@ -85,4 +85,5 @@
     <string name="language_cs" translatable="false">Čeština</string>
     <string name="language_en" translatable="false">English</string>
     <string name="language_de" translatable="false">Deutsch</string>
+    <string name="line_route_length">Route · %1$s</string>
 </resources>

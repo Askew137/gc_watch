@@ -61,6 +61,8 @@ class ArrivalMonitor(private val app: WearApplication) {
                     // the faster GPS has a time limit per target.
                     if (approaching && System.currentTimeMillis() - approachStartedAt > APPROACH_MAX_MS) approachSpentKey = key
                     if (approachSpentKey == key) zone = false
+                    // Walked away again (the cache was not found, or the same target was sent again): arm once more.
+                    if (arrivedKey == key && d > REARM_M) arrivedKey = null
                     setApproaching(zone && arrivedKey != key)
                     if (d <= ARRIVAL_M && arrivedKey != key) {
                         arrivedKey = key
@@ -85,7 +87,15 @@ class ArrivalMonitor(private val app: WearApplication) {
         try {
             val v = context.getSystemService(Vibrator::class.java) ?: return
             // Two short and one long: clearly "you are here", unlike the single buzz of an arriving target.
-            v.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 250, 120, 250, 120, 650), -1))
+            val effect = VibrationEffect.createWaveform(longArrayOf(0, 250, 120, 250, 120, 650), -1)
+            // Alarm usage: the buzz must come through the screen-off / Do-not-disturb / theatre modes and from the
+            // background (the default "unknown" usage is dropped there on some watches).
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                v.vibrate(effect, android.os.VibrationAttributes.Builder().setUsage(android.os.VibrationAttributes.USAGE_ALARM).build())
+            } else {
+                @Suppress("DEPRECATION")
+                v.vibrate(effect, android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).build())
+            }
         } catch (e: Exception) {
             Timber.w(e, "ArrivalMonitor: could not vibrate")
         }
@@ -93,8 +103,10 @@ class ArrivalMonitor(private val app: WearApplication) {
 
     companion object {
         /** Within this distance of the target the wearer counts as "there" (typical GPS error is 5-10 m). */
-        const val ARRIVAL_M = 20.0
+        const val ARRIVAL_M = 25.0
         /** Inside this distance the GPS runs faster in the saving mode; it stays on until [APPROACH_LEAVE_M]. */
+        /** Beyond this the buzz is armed again for the same target. */
+        const val REARM_M = 150.0
         const val APPROACH_M = 60.0
         const val APPROACH_LEAVE_M = 90.0
         /** The faster GPS runs for one target at most this long. */

@@ -48,6 +48,18 @@ class CompassViewModel : ViewModel() {
     private var reaction = HeadingReaction.NORMAL
     private var smoothed: Float? = null
 
+    /** Magnetic declination (east positive): the rotation vector points to MAGNETIC north, the map and bearings use true north. */
+    @Volatile private var declinationDeg = 0f
+    private var declinationAt: Pair<Double, Double>? = null
+
+    /** Updates the declination for the wearer's position (cheap; recomputed only after moving some kilometres). */
+    fun updateDeclination(lat: Double, lon: Double) {
+        val last = declinationAt
+        if (last != null && Math.abs(last.first - lat) < 0.05 && Math.abs(last.second - lon) < 0.05) return
+        declinationAt = lat to lon
+        declinationDeg = android.hardware.GeomagneticField(lat.toFloat(), lon.toFloat(), 0f, System.currentTimeMillis()).declination
+    }
+
     private val rotationMatrix = FloatArray(9)
     private val orientationAngles = FloatArray(3)
 
@@ -88,7 +100,7 @@ class CompassViewModel : ViewModel() {
                 if (event.sensor.type != Sensor.TYPE_ROTATION_VECTOR) return
                 SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
                 SensorManager.getOrientation(rotationMatrix, orientationAngles)
-                val raw = (Math.toDegrees(orientationAngles[0].toDouble()).toFloat() + 360f) % 360f
+                val raw = (Math.toDegrees(orientationAngles[0].toDouble()).toFloat() + declinationDeg + 720f) % 360f
                 val previous = smoothed
                 val next = if (previous == null || reaction.smoothing >= 1f) {
                     raw
@@ -135,7 +147,7 @@ class CompassViewModel : ViewModel() {
                     override fun onSensorChanged(event: SensorEvent) {
                         SensorManager.getRotationMatrixFromVector(matrix, event.values)
                         SensorManager.getOrientation(matrix, angles)
-                        val az = (Math.toDegrees(angles[0].toDouble()).toFloat() + 360f) % 360f
+                        val az = (Math.toDegrees(angles[0].toDouble()).toFloat() + declinationDeg + 720f) % 360f
                         sm.unregisterListener(this)
                         if (cont.isActive) cont.resume(az)
                     }

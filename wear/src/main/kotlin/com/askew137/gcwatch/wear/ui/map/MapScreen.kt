@@ -116,6 +116,14 @@ fun MapScreen(
 
     // Short on-screen label after tapping the line button, so the current state is obvious.
     var lineHint by remember { mutableStateOf<String?>(null) }
+    // A fresh route arrived while the route is shown: say how long it is.
+    var shownRoute by remember { mutableStateOf(route) }
+    LaunchedEffect(route) {
+        if (route != null && route !== shownRoute && lineMode == TargetLineMode.ROUTE) {
+            lineHint = routeHint(context, route, config.units)
+        }
+        shownRoute = route
+    }
     LaunchedEffect(lineHint) {
         if (lineHint != null) {
             delay(1600)
@@ -235,7 +243,7 @@ fun MapScreen(
                 lineHint = when {
                     mode == null -> context.getString(R.string.line_none)
                     mode == TargetLineMode.AIR_LINE -> context.getString(R.string.line_air)
-                    mode == TargetLineMode.ROUTE -> context.getString(R.string.line_route)
+                    mode == TargetLineMode.ROUTE -> routeHint(context, route, config.units)
                     route == null && routePending -> context.getString(R.string.line_target_routing)
                     route == null -> context.getString(R.string.line_target_no_route)
                     else -> context.getString(R.string.line_target_only)
@@ -380,3 +388,8 @@ private fun BoxScope.EdgeIconButton(
         icon()
     }
 }
+
+/** "Route · 1.2 km": the label after switching to the computed route. */
+private fun routeHint(context: android.content.Context, route: com.askew137.gcwatch.core.model.ComputedRoute?, units: com.askew137.gcwatch.core.model.Units): String =
+    if (route == null) context.getString(R.string.line_route)
+    else context.getString(R.string.line_route_length, com.askew137.gcwatch.wear.ui.compass.formatDistance(route.totalDistanceM, units))

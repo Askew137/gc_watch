@@ -59,6 +59,11 @@ fun WearApp(
         if (target != null && loc != null) navigationViewModel.requestRoute(loc, target)
     }
 
+    // The sensor heading is magnetic: correct it to true north for the wearer's position.
+    LaunchedEffect(location?.lat, location?.lon) {
+        location?.let { compassViewModel.updateDeclination(it.lat, it.lon) }
+    }
+
     // Build NavigationTarget from location + active target
     val navigationTarget = remember(location, activeTarget) {
         val loc = location ?: return@remember null
@@ -93,13 +98,21 @@ fun WearApp(
         ) {
             composable(DEST_MAP) {
                 ExitOnBack()
+                // The screen reads the live state itself: values captured by the NavHost builder go stale
+                // (the compass distance stood still), only state read inside the destination is current.
+                val liveConfig by configViewModel.config.collectAsStateWithLifecycle()
+                val liveLocation by gnssRepository.location.collectAsStateWithLifecycle()
+                val liveTarget by navigationViewModel.activeTarget.collectAsStateWithLifecycle()
+                val liveRoute by navigationViewModel.currentRoute.collectAsStateWithLifecycle()
+                val liveLineMode by navigationViewModel.lineMode.collectAsStateWithLifecycle()
+                val livePending by navigationViewModel.routePending.collectAsStateWithLifecycle()
                 MapScreen(
-                    config = config,
-                    location = location,
-                    activeTarget = activeTarget,
-                    route = currentRoute,
-                    lineMode = lineMode,
-                    routePending = routePending,
+                    config = liveConfig,
+                    location = liveLocation,
+                    activeTarget = liveTarget,
+                    route = liveRoute,
+                    lineMode = liveLineMode,
+                    routePending = livePending,
                     mapEngine = mapEngine,
                     autoMapSelector = autoMapSelector,
                     mapViewModel = mapViewModel,
@@ -111,10 +124,22 @@ fun WearApp(
                 )
             }
             composable(DEST_COMPASS) {
+                val liveConfig by configViewModel.config.collectAsStateWithLifecycle()
+                val liveLocation by gnssRepository.location.collectAsStateWithLifecycle()
+                val liveTarget by navigationViewModel.activeTarget.collectAsStateWithLifecycle()
+                val liveNavigationTarget = remember(liveLocation, liveTarget) {
+                    val loc = liveLocation ?: return@remember null
+                    val target = liveTarget ?: return@remember null
+                    NavigationTarget(
+                        waypoint = target,
+                        bearingDeg = bearingTo(loc.lat, loc.lon, target.lat, target.lon),
+                        distanceM = distanceTo(loc.lat, loc.lon, target.lat, target.lon),
+                    )
+                }
                 CompassScreen(
-                    config = config,
-                    location = location,
-                    navigationTarget = navigationTarget,
+                    config = liveConfig,
+                    location = liveLocation,
+                    navigationTarget = liveNavigationTarget,
                     compassViewModel = compassViewModel,
                     gnssRepository = gnssRepository,
                     onNavigateToMap = { navController.popBackStack() },
