@@ -181,4 +181,5 @@
     <string name="why_no_lan_address">Phone has no Wi-Fi or hotspot address</string>
     <string name="why_watch_no_connect">The watch did not reach the phone over Wi-Fi in time (is it on the same Wi-Fi or the phone\'s hotspot?)</string>
     <string name="step_sending_watch_why">Sending to the watch over Bluetooth (slow): %1$s</string>
+    <string name="step_sending_watch_bt">Sending to the watch (Bluetooth)</string>
 </resources>

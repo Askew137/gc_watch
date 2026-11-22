@@ -15,6 +15,8 @@ data class WatchLocation(
     val bearingDeg: Float,
     val accuracyM: Float,
     val speedMps: Float,
+    /** When the fix was taken (wall clock, ms). */
+    val timeMs: Long = System.currentTimeMillis(),
 ) {
     companion object {
         fun fromAndroidLocation(loc: android.location.Location) = WatchLocation(
@@ -23,6 +25,7 @@ data class WatchLocation(
             bearingDeg = if (loc.hasBearing()) loc.bearing else Float.NaN,
             accuracyM = if (loc.hasAccuracy()) loc.accuracy else Float.NaN,
             speedMps = if (loc.hasSpeed()) loc.speed else Float.NaN,
+            timeMs = System.currentTimeMillis(),
         )
     }
 }

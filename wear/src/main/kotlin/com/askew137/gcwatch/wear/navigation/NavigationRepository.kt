@@ -41,7 +41,24 @@ class NavigationRepository(private val context: Context) {
     private val _routePending = MutableStateFlow(false)
     val routePending: StateFlow<Boolean> = _routePending.asStateFlow()
 
-    private val _activeTarget = MutableStateFlow<Waypoint?>(null)
+    private val prefs = context.getSharedPreferences("nav_state", Context.MODE_PRIVATE)
+
+    /** The target survives the system killing the process (the foreground service may outlive the UI, not always the process). */
+    private fun loadTarget(): Waypoint? {
+        val p = prefs.getString("target", null)?.split('|', limit = 4) ?: return null
+        val lat = p.getOrNull(0)?.toDoubleOrNull() ?: return null
+        val lon = p.getOrNull(1)?.toDoubleOrNull() ?: return null
+        return Waypoint(lat, lon, label = p.getOrElse(2) { "" }, code = p.getOrElse(3) { "" })
+    }
+
+    private fun saveTarget(w: Waypoint?) {
+        prefs.edit().apply {
+            if (w == null) remove("target")
+            else putString("target", listOf(w.lat, w.lon, w.label.replace('|', ' '), w.code.replace('|', ' ')).joinToString("|"))
+        }.apply()
+    }
+
+    private val _activeTarget = MutableStateFlow<Waypoint?>(loadTarget())
     val activeTarget: StateFlow<Waypoint?> = _activeTarget.asStateFlow()
 
     private val _currentRoute = MutableStateFlow<ComputedRoute?>(null)
@@ -49,6 +66,11 @@ class NavigationRepository(private val context: Context) {
 
     private val _lineMode = MutableStateFlow(TargetLineMode.AIR_LINE)
     val lineMode: StateFlow<TargetLineMode> = _lineMode.asStateFlow()
+
+    init {
+        // A restored target needs its route again.
+        _activeTarget.value?.let { _routeRequestNeeded.value = it }
+    }
 
     /** Debug builds only (see `gcwatch.debugTarget`): a target without a phone. */
     fun debugSetTarget(lat: Double, lon: Double) {
@@ -60,6 +82,7 @@ class NavigationRepository(private val context: Context) {
         try {
             val waypoint = WaypointSerializer.decode(bytes)
             _activeTarget.value = waypoint
+            saveTarget(waypoint)
             // A route belongs to its target: drop the old one. The phone pushes the new route
             // (if any) right after the waypoint. A new target always starts with the air line.
             _currentRoute.value = null
@@ -172,6 +195,7 @@ class NavigationRepository(private val context: Context) {
     /** Clears both the active target and route. */
     fun clearAll() {
         _activeTarget.value = null
+        saveTarget(null)
         _currentRoute.value = null
         _lineMode.value = TargetLineMode.AIR_LINE
         _routeRequestNeeded.value = null

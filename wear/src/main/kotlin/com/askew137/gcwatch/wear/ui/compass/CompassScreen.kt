@@ -106,7 +106,22 @@ fun CompassScreen(
                 color = Color.White,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 32.dp),
+                    .padding(bottom = 34.dp),
+            )
+        }
+
+        // ── GPS accuracy / age of the fix, small, under the distance ─────────────────────────────
+        location?.let { loc ->
+            val ageS = ((System.currentTimeMillis() - loc.timeMs) / 1000).toInt()
+            Text(
+                text = when {
+                    ageS > 15 -> stringResource(R.string.gps_old, ageS)
+                    loc.accuracyM.isFinite() -> stringResource(R.string.gps_accuracy, loc.accuracyM.roundToInt())
+                    else -> stringResource(R.string.gps_accuracy_unknown)
+                },
+                fontSize = 10.sp,
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp),
             )
         }
 

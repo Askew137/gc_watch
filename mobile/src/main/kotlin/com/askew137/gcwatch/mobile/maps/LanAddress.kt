@@ -26,19 +26,30 @@ object LanAddress {
      * IPv4 address that the watch can reach.
      */
     private fun hotspotAddress(): String? = try {
-        java.net.NetworkInterface.getNetworkInterfaces().toList()
-            .filter { it.isUp && !it.isLoopback && !it.isPointToPoint && !BAD_INTERFACE.containsMatchIn(it.name) }
-            .flatMap { nif -> nif.inetAddresses.toList().filter { it is Inet4Address && it.isSiteLocalAddress }.map { nif.name to it } }
-            .sortedBy { (name, _) -> if (Regex("""^(ap|swlan|softap|wlan)""").containsMatchIn(name)) 0 else 1 }
-            .firstOrNull()
-            ?.also { (name, addr) -> timber.log.Timber.i("LanAddress: hotspot interface %s %s", name, addr.hostAddress) }
-            ?.second?.hostAddress
+        val candidates = java.net.NetworkInterface.getNetworkInterfaces().toList()
+            .filter { it.isUp && !it.isLoopback && !it.isPointToPoint }
+            .flatMap { nif -> nif.inetAddresses.toList().filterIsInstance<Inet4Address>().map { nif.name to it.hostAddress.orEmpty() } }
+        pickLanAddress(candidates)?.also { timber.log.Timber.i("LanAddress: hotspot address %s (of %s)", it, candidates) }
     } catch (e: Exception) {
         null
     }
 
     /** Mobile data, VPNs and the like: never the way to the watch. */
     private val BAD_INTERFACE = Regex("""^(rmnet|ccmni|v4-|clat|tun|tap|ppp|dummy|ifb|ip6|sit|lo)""")
+    private val HOTSPOT_INTERFACE = Regex("""^(ap|swlan|softap|wlan)""")
+
+    /** From (interface name, IPv4) pairs: a private address on a Wi-Fi-like interface first, any other non-mobile private one next. */
+    internal fun pickLanAddress(candidates: List<Pair<String, String>>): String? =
+        candidates
+            .filter { (name, ip) -> !BAD_INTERFACE.containsMatchIn(name) && isPrivate(ip) }
+            .sortedBy { (name, _) -> if (HOTSPOT_INTERFACE.containsMatchIn(name)) 0 else 1 }
+            .firstOrNull()?.second
+
+    private fun isPrivate(ip: String): Boolean {
+        val o = ip.split('.').mapNotNull { it.toIntOrNull() }
+        if (o.size != 4) return false
+        return o[0] == 10 || (o[0] == 172 && o[1] in 16..31) || (o[0] == 192 && o[1] == 168)
+    }
 
     /** A random token for the one-time URL. */
     fun token(): String =

@@ -75,4 +75,8 @@
     <string name="language_title">Sprache</string>
     <string name="language_system">System</string>
     <string name="line_route_length">Route · %1$s</string>
+    <string name="try_vibration">Vibration testen</string>
+    <string name="gps_accuracy">GPS ±%1$d m</string>
+    <string name="gps_old">GPS: letzter Fix vor %1$d s</string>
+    <string name="gps_accuracy_unknown">GPS ± ? m</string>
 </resources>

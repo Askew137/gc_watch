@@ -225,7 +225,7 @@ object AppUpdater {
      * it could not reach the phone, so the caller falls back to the channel.
      */
     private fun channelStepText(): String =
-        lanWhyNot?.let { text(R.string.step_sending_watch_why, it) } ?: text(R.string.step_sending_watch)
+        lanWhyNot?.let { text(R.string.step_sending_watch_why, it) } ?: text(R.string.step_sending_watch_bt)
 
     /** Why the last [viaLan] gave up (shown while the slow Bluetooth path runs). */
     @Volatile private var lanWhyNot: String? = null

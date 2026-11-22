@@ -86,4 +86,8 @@
     <string name="language_en" translatable="false">English</string>
     <string name="language_de" translatable="false">Deutsch</string>
     <string name="line_route_length">Route · %1$s</string>
+    <string name="try_vibration">Try vibration</string>
+    <string name="gps_accuracy">GPS ±%1$d m</string>
+    <string name="gps_old">GPS: last fix %1$d s ago</string>
+    <string name="gps_accuracy_unknown">GPS ± ? m</string>
 </resources>

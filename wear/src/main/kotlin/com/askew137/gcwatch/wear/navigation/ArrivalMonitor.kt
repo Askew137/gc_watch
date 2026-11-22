@@ -51,8 +51,11 @@ class ArrivalMonitor(private val app: WearApplication) {
                         return@collect
                     }
                     if (loc == null) return@collect
-                    // A poor fix could put the wearer "at" the cache from a hundred metres away.
-                    if (loc.accuracyM.isFinite() && loc.accuracyM > MAX_ACCURACY_M) return@collect
+                    // A very poor fix says little; otherwise a worse fix widens the zone (under trees the watch
+                    // often reports 20-40 m, and a strict radius would never be reached).
+                    val accuracy = if (loc.accuracyM.isFinite()) loc.accuracyM else DEFAULT_ACCURACY_M
+                    if (accuracy > MAX_ACCURACY_M) return@collect
+                    val arrivalRadius = accuracy.toDouble().coerceIn(ARRIVAL_M, ARRIVAL_MAX_M)
                     val key = "${target.lat},${target.lon}"
                     val d = distanceM(loc.lat, loc.lon, target.lat, target.lon)
                     // Approach zone with hysteresis (no restarting of the GPS when hovering around the border).
@@ -64,10 +67,10 @@ class ArrivalMonitor(private val app: WearApplication) {
                     // Walked away again (the cache was not found, or the same target was sent again): arm once more.
                     if (arrivedKey == key && d > REARM_M) arrivedKey = null
                     setApproaching(zone && arrivedKey != key)
-                    if (d <= ARRIVAL_M && arrivedKey != key) {
+                    if (d <= arrivalRadius && arrivedKey != key) {
                         arrivedKey = key
                         setApproaching(false)
-                        Timber.i("ArrivalMonitor: arrived at %s (%.0f m)", target.code.ifEmpty { target.label }, d)
+                        Timber.i("ArrivalMonitor: arrived at %s (%.0f m, accuracy %.0f m)", target.code.ifEmpty { target.label }, d, accuracy)
                         buzz(app)
                         if (UiPrefs.autoCompassAtTarget(app)) _pendingCompass.value = true
                     }
@@ -83,7 +86,9 @@ class ArrivalMonitor(private val app: WearApplication) {
         app.gnssRepository.setApproaching(value)
     }
 
-    private fun buzz(context: Context) {
+    companion object {
+        /** Two short and one long: clearly "you are here". Also used by the "try the vibration" button. */
+        fun buzz(context: Context) {
         try {
             val v = context.getSystemService(Vibrator::class.java) ?: return
             // Two short and one long: clearly "you are here", unlike the single buzz of an arriving target.
@@ -99,19 +104,21 @@ class ArrivalMonitor(private val app: WearApplication) {
         } catch (e: Exception) {
             Timber.w(e, "ArrivalMonitor: could not vibrate")
         }
-    }
+        }
 
-    companion object {
-        /** Within this distance of the target the wearer counts as "there" (typical GPS error is 5-10 m). */
+        /** The wearer counts as "there" within this distance of the target (typical GPS error is 5-10 m)... */
         const val ARRIVAL_M = 25.0
+        /** ...or, with a worse fix, within its accuracy radius up to this much. */
+        const val ARRIVAL_MAX_M = 50.0
+        private const val DEFAULT_ACCURACY_M = 25f
         /** Inside this distance the GPS runs faster in the saving mode; it stays on until [APPROACH_LEAVE_M]. */
+        const val APPROACH_M = 80.0
+        const val APPROACH_LEAVE_M = 110.0
         /** Beyond this the buzz is armed again for the same target. */
         const val REARM_M = 150.0
-        const val APPROACH_M = 60.0
-        const val APPROACH_LEAVE_M = 90.0
         /** The faster GPS runs for one target at most this long. */
         const val APPROACH_MAX_MS = 10 * 60 * 1000L
-        private const val MAX_ACCURACY_M = 40f
+        private const val MAX_ACCURACY_M = 100f
 
         fun distanceM(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
             val r = 6_371_000.0

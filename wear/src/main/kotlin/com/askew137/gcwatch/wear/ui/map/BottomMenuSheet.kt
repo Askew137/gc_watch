@@ -447,6 +447,21 @@ private fun OstatniTab(
             }
             Spacer(Modifier.height(4.dp))
         }
+        Spacer(Modifier.height(8.dp))
+        val buzzContext = androidx.compose.ui.platform.LocalContext.current
+        Chip(
+            onClick = { com.askew137.gcwatch.wear.navigation.ArrivalMonitor.buzz(buzzContext) },
+            label = {
+                Text(
+                    stringResource(R.string.try_vibration),
+                    fontSize = 10.sp, maxLines = 1,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
+            modifier = Modifier.fillMaxWidth(0.8f),
+        )
         Spacer(Modifier.height(10.dp))
         Text(
             stringResource(R.string.version_label, com.askew137.gcwatch.wear.BuildConfig.VERSION_NAME, com.askew137.gcwatch.wear.BuildConfig.VERSION_CODE),

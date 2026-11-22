@@ -75,4 +75,8 @@
     <string name="language_title">Jazyk</string>
     <string name="language_system">Systém</string>
     <string name="line_route_length">Trasa · %1$s</string>
+    <string name="try_vibration">Zkusit vibraci</string>
+    <string name="gps_accuracy">GPS ±%1$d m</string>
+    <string name="gps_old">GPS: poslední fix před %1$d s</string>
+    <string name="gps_accuracy_unknown">GPS ± ? m</string>
 </resources>

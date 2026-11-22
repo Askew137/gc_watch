@@ -176,4 +176,5 @@
     <string name="why_no_lan_address">Das Telefon hat keine WLAN- oder Hotspot-Adresse</string>
     <string name="why_watch_no_connect">Die Uhr hat das Telefon per WLAN nicht rechtzeitig erreicht (im selben WLAN oder im Hotspot des Telefons?)</string>
     <string name="step_sending_watch_why">Senden an die Uhr per Bluetooth (langsam): %1$s</string>
+    <string name="step_sending_watch_bt">Senden an die Uhr (Bluetooth)</string>
 </resources>
